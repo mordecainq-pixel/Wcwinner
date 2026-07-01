@@ -13,6 +13,7 @@ DATA_RAW_DIR = PROJECT_ROOT / "data" / "raw"
 DATA_PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
 DATA_RAW_DIR.mkdir(parents=True, exist_ok=True)
 DATA_PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+ELO_RATINGS_PATH = DATA_PROCESSED_DIR / "elo_ratings.pkl"
 
 KAGGLE_DATASET_SLUG = "martj42/international-football-results-from-1872-to-2017"
 
