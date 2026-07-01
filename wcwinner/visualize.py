@@ -146,3 +146,32 @@ def render_prediction_card(
     if save_path:
         fig.savefig(save_path, dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
     return fig
+
+
+def render_tournament_odds_card(sim_result, n_iterations: int, top_n: int = 12, save_path: str | None = None):
+    """Horizontal bar chart of championship odds from `simulate.bracket.simulate_tournament`."""
+    top = sim_result.head(top_n).iloc[::-1]  # reverse so the favorite ends up on top of the chart
+
+    fig, ax = plt.subplots(figsize=(6.4, 0.55 * top_n + 1.6), facecolor=BG_COLOR)
+    ax.set_facecolor(BG_COLOR)
+
+    bars = ax.barh(top.index, top["CHAMPION"] * 100, color=HOME_COLOR, height=0.6)
+    for bar, (team, row) in zip(bars, top.iterrows()):
+        ax.text(
+            bar.get_width() + 0.6, bar.get_y() + bar.get_height() / 2,
+            f"{row['CHAMPION']*100:.1f}%", va="center", ha="left", fontsize=10, weight="bold", color="#333",
+        )
+
+    ax.set_xlim(0, max(top["CHAMPION"] * 100) * 1.3)
+    ax.set_yticks(range(len(top)))
+    ax.set_yticklabels(top.index, fontsize=10, weight="bold")
+    ax.tick_params(axis="y", length=0)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    ax.set_xlabel("Chance of winning the tournament (%)", fontsize=9, color="#666")
+    ax.set_title(f"WORLD CUP 2026 · MONTE CARLO SIMULATION ({n_iterations:,} iterations)", fontsize=11, weight="bold", color="#555", pad=14)
+
+    fig.tight_layout()
+    if save_path:
+        fig.savefig(save_path, dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
+    return fig
