@@ -1,0 +1,148 @@
+"""Renders a single-matchup prediction as a graphic "card" (team ratings,
+win-probability bar, expected goals, market comparison, knockout advance %,
+projected score) rather than a plain-text table.
+
+Team flags aren't drawn (no flag image assets in this project) -- team names
+are shown as text instead. Attack/Defense "scores" are cosmetic 30-95 scaled
+versions of the fitted Dixon-Coles parameters (min-max normalized across all
+fitted teams), for readability only -- they are not new model outputs.
+"""
+from __future__ import annotations
+
+import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
+import numpy as np
+
+from wcwinner.data.odds_client import market_probabilities
+from wcwinner.model.dixon_coles import DixonColesModel
+from wcwinner.simulate.match import predict_match
+
+HOME_COLOR = "#3c8c40"
+AWAY_COLOR = "#e0952b"
+DRAW_COLOR = "#b0b0b0"
+BG_COLOR = "#f2efe9"
+PANEL_COLOR = "#e9e5db"
+
+
+def _scaled_ratings(model: DixonColesModel) -> dict[str, dict[str, float]]:
+    teams = list(model.attack.keys())
+    attack_vals = np.array([model.attack[t] for t in teams])
+    defense_vals = np.array([-model.defense[t] for t in teams])  # sign-flipped: higher = better defense
+
+    def scale(vals: np.ndarray) -> np.ndarray:
+        lo, hi = vals.min(), vals.max()
+        return 30 + 65 * (vals - lo) / (hi - lo)
+
+    attack_scaled = scale(attack_vals)
+    defense_scaled = scale(defense_vals)
+    overall = (attack_scaled + defense_scaled) / 2
+    return {
+        t: {"attack": float(a), "defense": float(d), "overall": float(o)}
+        for t, a, d, o in zip(teams, attack_scaled, defense_scaled, overall)
+    }
+
+
+def _market_row_for(home_team: str, away_team: str, market_df) -> dict | None:
+    if market_df is None or market_df.empty:
+        return None
+    match = market_df[(market_df["home_team"] == home_team) & (market_df["away_team"] == away_team)]
+    if match.empty:
+        return None
+    return match.iloc[0].to_dict()
+
+
+def render_prediction_card(
+    model: DixonColesModel,
+    home_team: str,
+    away_team: str,
+    elo_ratings: dict[str, float],
+    neutral: bool = True,
+    knockout: bool = False,
+    stage_label: str = "ROUND OF 32",
+    include_market: bool = True,
+    save_path: str | None = None,
+):
+    pred = predict_match(model, home_team, away_team, neutral=neutral, knockout=knockout, elo_ratings=elo_ratings)
+    ratings = _scaled_ratings(model)
+    home_r = ratings.get(home_team, {"attack": 50.0, "defense": 50.0, "overall": 50.0})
+    away_r = ratings.get(away_team, {"attack": 50.0, "defense": 50.0, "overall": 50.0})
+
+    market_row = None
+    if include_market:
+        try:
+            market_row = _market_row_for(home_team, away_team, market_probabilities())
+        except Exception:
+            market_row = None  # market data is a nice-to-have on the card, never required
+
+    fig, ax = plt.subplots(figsize=(6.4, 8.5), facecolor=BG_COLOR)
+    ax.set_xlim(0, 10)
+    ax.set_ylim(0, 14)
+    ax.axis("off")
+
+    def name_fontsize(name: str) -> float:
+        return max(8.0, min(13.0, 150.0 / max(len(name), 1)))
+
+    ax.text(5, 13.5, f"{stage_label} · DIXON-COLES MODEL", ha="center", fontsize=11, weight="bold", color="#555")
+    ax.text(1.9, 12.6, home_team.upper(), ha="center", fontsize=name_fontsize(home_team), weight="bold")
+    ax.text(8.1, 12.6, away_team.upper(), ha="center", fontsize=name_fontsize(away_team), weight="bold")
+    ax.text(5, 12.6, "vs", ha="center", fontsize=9, color="#aaa")
+
+    ax.text(5, 11.75, "WIN IN REGULATION", ha="center", fontsize=10, color="#666")
+    p_home, p_draw, p_away = pred["p_home_win"], pred["p_draw"], pred["p_away_win"]
+    x0, width, bar_y, bar_h = 0.5, 9.0, 11.0, 0.55
+    home_w, draw_w, away_w = width * p_home, width * p_draw, width * p_away
+    ax.add_patch(mpatches.Rectangle((x0, bar_y), home_w, bar_h, color=HOME_COLOR))
+    ax.add_patch(mpatches.Rectangle((x0 + home_w, bar_y), draw_w, bar_h, color=DRAW_COLOR))
+    ax.add_patch(mpatches.Rectangle((x0 + home_w + draw_w, bar_y), away_w, bar_h, color=AWAY_COLOR))
+    ax.text(x0 + home_w / 2, bar_y + bar_h / 2, f"{p_home*100:.0f}%", ha="center", va="center", fontsize=11, weight="bold", color="white")
+    ax.text(x0 + home_w + draw_w / 2, bar_y + bar_h / 2, f"{p_draw*100:.0f}%", ha="center", va="center", fontsize=11, weight="bold", color="#444")
+    ax.text(x0 + home_w + draw_w + away_w / 2, bar_y + bar_h / 2, f"{p_away*100:.0f}%", ha="center", va="center", fontsize=11, weight="bold", color="white")
+    ax.text(2, bar_y - 0.35, home_team, ha="center", fontsize=9, color=HOME_COLOR, weight="bold")
+    ax.text(5, bar_y - 0.35, "Draw", ha="center", fontsize=9, color="#888")
+    ax.text(8, bar_y - 0.35, away_team, ha="center", fontsize=9, color=AWAY_COLOR, weight="bold")
+
+    y = 9.7
+    for label, hv, av in [
+        ("ATTACK SCORE", f"{home_r['attack']:.0f}", f"{away_r['attack']:.0f}"),
+        ("DEFENSE SCORE", f"{home_r['defense']:.0f}", f"{away_r['defense']:.0f}"),
+        ("EXPECTED GOALS", f"{pred['expected_goals_home']:.2f}", f"{pred['expected_goals_away']:.2f}"),
+    ]:
+        ax.text(2, y, hv, ha="center", fontsize=16, weight="bold", color=HOME_COLOR)
+        ax.text(5, y, label, ha="center", fontsize=9, color="#888")
+        ax.text(8, y, av, ha="center", fontsize=16, weight="bold", color=AWAY_COLOR)
+        y -= 0.95
+
+    if market_row is not None:
+        market_home, market_away = market_row["market_home_prob"], market_row["market_away_prob"]
+        flip = (market_home > market_away) != (p_home > p_away)
+        ax.text(2, y, f"{market_home*100:.0f}%", ha="center", fontsize=14, weight="bold", color=HOME_COLOR)
+        ax.text(5, y, "MARKET WIN" + ("\n— flip —" if flip else ""), ha="center", fontsize=9, color="#888")
+        ax.text(8, y, f"{market_away*100:.0f}%", ha="center", fontsize=14, weight="bold", color=AWAY_COLOR)
+        y -= 0.95
+
+    if knockout:
+        ko = pred["knockout"]
+        ax.text(2, y, f"{ko['p_home_advances']*100:.0f}%", ha="center", fontsize=16, weight="bold", color=HOME_COLOR)
+        ax.text(5, y, "TO ADVANCE", ha="center", fontsize=9, color="#888")
+        ax.text(8, y, f"{ko['p_away_advances']*100:.0f}%", ha="center", fontsize=16, weight="bold", color=AWAY_COLOR)
+        y -= 1.05
+
+    i, j = pred["most_likely_score"]
+    ax.add_patch(mpatches.FancyBboxPatch((1.2, y - 1.55), 7.6, 1.45, boxstyle="round,pad=0.02", linewidth=0, facecolor=PANEL_COLOR))
+    ax.text(1.7, y - 0.55, "Projected score", ha="left", fontsize=10, color="#555")
+    ax.text(8.3, y - 0.55, f"{i} - {j}", ha="right", fontsize=15, weight="bold")
+    ax.text(1.7, y - 1.15, "Both teams to score", ha="left", fontsize=10, color="#555")
+    ax.text(8.3, y - 1.15, f"{pred['p_btts']*100:.0f}%", ha="right", fontsize=12, weight="bold")
+    y -= 1.9
+
+    lean_team = home_team if p_home > p_away else away_team
+    lean_note = ""
+    if market_row is not None:
+        market_favorite = home_team if market_home > market_away else away_team
+        if market_favorite != lean_team:
+            lean_note = f" — market likes {market_favorite}, model flips it"
+    ax.text(5, max(y, 0.4), f"Model lean: {lean_team}{lean_note}", ha="center", fontsize=10, style="italic", color="#444")
+
+    if save_path:
+        fig.savefig(save_path, dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
+    return fig

@@ -17,6 +17,7 @@ from wcwinner.simulate.match import predict_match
 from wcwinner.validate.backtest import run_backtest
 from wcwinner.validate.calibration import calibration_report
 from wcwinner.validate.market_compare import compare_to_market
+from wcwinner.visualize import render_prediction_card
 
 
 def _load_model_and_elo():
@@ -95,6 +96,16 @@ def cmd_market(args: argparse.Namespace) -> None:
     print(df.to_string(index=False, float_format=lambda x: f"{x*100:.1f}%"))
 
 
+def cmd_card(args: argparse.Namespace) -> None:
+    model, elo_ratings = _load_model_and_elo()
+    fig = render_prediction_card(
+        model, args.home, args.away, elo_ratings,
+        neutral=not args.home_advantage, knockout=args.knockout,
+        stage_label=args.stage, save_path=args.out,
+    )
+    print(f"Saved card to {args.out}")
+
+
 def cmd_refresh(args: argparse.Namespace) -> None:
     from wcwinner.pipeline import run_full_refresh
 
@@ -136,6 +147,15 @@ def main() -> None:
 
     p_refresh = sub.add_parser("refresh", help="Re-download historical data and refit the model")
     p_refresh.set_defaults(func=cmd_refresh)
+
+    p_card = sub.add_parser("card", help="Render a graphic prediction card to a PNG file")
+    p_card.add_argument("home")
+    p_card.add_argument("away")
+    p_card.add_argument("--home-advantage", action="store_true")
+    p_card.add_argument("--knockout", action="store_true")
+    p_card.add_argument("--stage", default="ROUND OF 32")
+    p_card.add_argument("--out", default="prediction_card.png")
+    p_card.set_defaults(func=cmd_card)
 
     args = parser.parse_args()
     args.func(args)
