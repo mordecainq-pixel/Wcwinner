@@ -41,6 +41,13 @@ ROLLING_FORM_HALF_LIFE = 6  # matches; exponential recency decay
 
 # --- Dixon-Coles model ---
 DC_XI_TIME_DECAY = 0.0018  # per-day exponential downweighting of older matches in MLE fit
+DC_LOOKBACK_YEARS = 10  # matches older than this are excluded from fitting entirely;
+# at DC_XI_TIME_DECAY's half-life (~385 days) they'd carry negligible weight anyway
+DC_L2_REG = 0.001  # ridge penalty on attack/defense to keep the optimizer well-conditioned
+DC_SHRINKAGE_K = 20  # empirical-Bayes shrinkage strength (in "equivalent matches") pulling
+# low-sample teams' attack/defense toward their Elo-implied values
+DC_MIN_MATCHES_FOR_ELO_REGRESSION = 15  # only well-estimated teams inform the Elo->attack/
+# defense regression used to build that prior
 
 # --- World Cup 2026 ---
 WORLD_CUP_2026_START = "2026-06-11"
