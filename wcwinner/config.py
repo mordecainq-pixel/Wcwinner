@@ -49,6 +49,13 @@ DC_SHRINKAGE_K = 20  # empirical-Bayes shrinkage strength (in "equivalent matche
 DC_MIN_MATCHES_FOR_ELO_REGRESSION = 15  # only well-estimated teams inform the Elo->attack/
 # defense regression used to build that prior
 
+# --- Knockout extra-time / penalty tie-break ---
+# Regulation draws are resolved ~50/50 (extra time + penalties are close to a
+# coin flip in reality) with a small tilt toward the higher-Elo team, capped
+# via tanh so even huge Elo gaps can't push it far from 50/50.
+KNOCKOUT_TIEBREAK_ELO_WEIGHT = 0.08
+KNOCKOUT_TIEBREAK_ELO_SCALE = 400
+
 # --- World Cup 2026 ---
 WORLD_CUP_2026_START = "2026-06-11"
 WORLD_CUP_2026_END = "2026-07-19"
