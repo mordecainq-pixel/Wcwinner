@@ -1,0 +1,28 @@
+[project]
+name = "wcwinner"
+version = "0.1.0"
+description = "World Cup 2026 match prediction system using a Dixon-Coles adjusted Poisson model"
+requires-python = ">=3.10"
+dependencies = [
+    "pandas>=2.0",
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "requests>=2.31",
+    "python-dotenv>=1.0",
+    "kagglehub>=0.3",
+    "streamlit>=1.30",
+    "matplotlib>=3.7",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4"]
+
+[project.scripts]
+wcwinner = "wcwinner.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["wcwinner*"]
