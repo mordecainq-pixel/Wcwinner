@@ -14,7 +14,7 @@ from __future__ import annotations
 import numpy as np
 
 from wcwinner.config import KNOCKOUT_TIEBREAK_ELO_SCALE, KNOCKOUT_TIEBREAK_ELO_WEIGHT
-from wcwinner.model.dixon_coles import DixonColesModel
+from wcwinner.model.dixon_coles import DixonColesModel, build_score_matrix
 
 
 def tiebreak_home_win_prob(home_team: str, away_team: str, elo_ratings: dict[str, float]) -> float:
@@ -30,11 +30,17 @@ def knockout_outcome_probs(
     elo_ratings: dict[str, float],
     neutral: bool = True,
     max_goals: int = 8,
+    home_strength_multiplier: float = 1.0,
+    away_strength_multiplier: float = 1.0,
 ) -> dict:
     """Probability the home/away team advances, decomposing regulation win vs.
-    a draw sent to the ET/penalty tiebreak.
+    a draw sent to the ET/penalty tiebreak. The strength multipliers are the
+    same manual, optional squad-news knob as `simulate.match.predict_match`.
     """
-    matrix = model.score_matrix(home_team, away_team, neutral=neutral, max_goals=max_goals)
+    lam, mu = model.expected_goals(home_team, away_team, neutral)
+    lam *= home_strength_multiplier
+    mu *= away_strength_multiplier
+    matrix = build_score_matrix(lam, mu, model.rho, max_goals)
     p_home_reg_win = float(np.tril(matrix, -1).sum())
     p_draw = float(np.trace(matrix))
     p_away_reg_win = float(np.triu(matrix, 1).sum())

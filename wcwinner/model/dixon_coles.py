@@ -57,16 +57,24 @@ class DixonColesModel:
     def score_matrix(self, home_team: str, away_team: str, neutral: bool = True, max_goals: int = 8) -> np.ndarray:
         """P(home scores i, away scores j) for i,j in [0, max_goals], Dixon-Coles adjusted."""
         lam, mu = self.expected_goals(home_team, away_team, neutral)
-        i = np.arange(max_goals + 1)
-        home_pmf = poisson.pmf(i, lam)
-        away_pmf = poisson.pmf(i, mu)
-        matrix = np.outer(home_pmf, away_pmf)
+        return build_score_matrix(lam, mu, self.rho, max_goals)
 
-        for x, y in [(0, 0), (0, 1), (1, 0), (1, 1)]:
-            matrix[x, y] *= _tau(x, y, lam, mu, self.rho)
 
-        matrix /= matrix.sum()  # renormalize after the tau tweak and finite truncation
-        return matrix
+def build_score_matrix(lam: float, mu: float, rho: float, max_goals: int = 8) -> np.ndarray:
+    """P(home scores i, away scores j) for i,j in [0, max_goals], Dixon-Coles
+    tau-adjusted. Standalone so callers can pass manually-adjusted expected
+    goals (e.g. a squad-news discount) without going through a fitted model.
+    """
+    i = np.arange(max_goals + 1)
+    home_pmf = poisson.pmf(i, lam)
+    away_pmf = poisson.pmf(i, mu)
+    matrix = np.outer(home_pmf, away_pmf)
+
+    for x, y in [(0, 0), (0, 1), (1, 0), (1, 1)]:
+        matrix[x, y] *= _tau(x, y, lam, mu, rho)
+
+    matrix /= matrix.sum()  # renormalize after the tau tweak and finite truncation
+    return matrix
 
 
 def _tau(x: int, y: int, lam: np.ndarray | float, mu: np.ndarray | float, rho: float):

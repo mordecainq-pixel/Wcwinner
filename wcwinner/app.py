@@ -46,11 +46,19 @@ def main() -> None:
     neutral = st.checkbox("Neutral venue", value=True)
     knockout = st.checkbox("Knockout match (show ET/penalty advancement odds)", value=False)
 
+    with st.expander("Squad news (manual, optional - no reliable free API for this)"):
+        st.caption("Not automated by design. Leave at 1.0 unless you know of a specific absence to account for.")
+        home_strength = st.slider(f"{home} squad strength multiplier", 0.5, 1.0, 1.0, 0.05)
+        away_strength = st.slider(f"{away} squad strength multiplier", 0.5, 1.0, 1.0, 0.05)
+
     if home == away:
         st.warning("Pick two different teams.")
         return
 
-    pred = predict_match(model, home, away, neutral=neutral, knockout=knockout, elo_ratings=elo_ratings)
+    pred = predict_match(
+        model, home, away, neutral=neutral, knockout=knockout, elo_ratings=elo_ratings,
+        home_strength_multiplier=home_strength, away_strength_multiplier=away_strength,
+    )
 
     st.subheader(f"{home} vs {away}")
     c1, c2, c3 = st.columns(3)

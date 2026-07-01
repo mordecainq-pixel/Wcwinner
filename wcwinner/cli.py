@@ -37,7 +37,10 @@ def _print_scoreline_heatmap(matrix, home_team, away_team, max_goals=6) -> None:
 def cmd_predict(args: argparse.Namespace) -> None:
     model, elo_ratings = _load_model_and_elo()
     neutral = not args.home_advantage
-    pred = predict_match(model, args.home, args.away, neutral=neutral, knockout=args.knockout, elo_ratings=elo_ratings)
+    pred = predict_match(
+        model, args.home, args.away, neutral=neutral, knockout=args.knockout, elo_ratings=elo_ratings,
+        home_strength_multiplier=args.home_strength, away_strength_multiplier=args.away_strength,
+    )
 
     venue = " (neutral venue)" if neutral else f" ({args.home} at home)"
     print(f"\n{args.home} vs {args.away}{venue}")
@@ -107,6 +110,14 @@ def main() -> None:
     p_predict.add_argument("away")
     p_predict.add_argument("--home-advantage", action="store_true", help="Non-neutral fixture with `home` at home")
     p_predict.add_argument("--knockout", action="store_true", help="Include ET/penalty advancement probability")
+    p_predict.add_argument(
+        "--home-strength", type=float, default=1.0,
+        help="Manual squad-news multiplier on home xG, e.g. 0.85 for a missing striker (default 1.0, no adjustment)",
+    )
+    p_predict.add_argument(
+        "--away-strength", type=float, default=1.0,
+        help="Manual squad-news multiplier on away xG (default 1.0, no adjustment)",
+    )
     p_predict.set_defaults(func=cmd_predict)
 
     p_bracket = sub.add_parser("bracket", help="Monte Carlo simulate the rest of the WC 2026 bracket")
