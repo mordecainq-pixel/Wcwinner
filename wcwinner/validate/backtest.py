@@ -26,7 +26,12 @@ def elo_only_baseline_probs(elo_home: float, elo_away: float, neutral: bool, hom
     return p_home, draw_rate, p_away
 
 
-def run_backtest(results: pd.DataFrame, cutoff_date: str | pd.Timestamp, max_test_matches: int | None = None) -> dict:
+def run_backtest(
+    results: pd.DataFrame,
+    cutoff_date: str | pd.Timestamp,
+    max_test_matches: int | None = None,
+    weight_by_importance: bool = False,
+) -> dict:
     cutoff_date = pd.Timestamp(cutoff_date)
     train = results[results["date"] <= cutoff_date].copy()
     test = results[
@@ -36,7 +41,7 @@ def run_backtest(results: pd.DataFrame, cutoff_date: str | pd.Timestamp, max_tes
         test = test.head(max_test_matches)
 
     _, elo_ratings = compute_elo_history(train)
-    model = fit(train, elo_ratings, as_of=cutoff_date)
+    model = fit(train, elo_ratings, as_of=cutoff_date, weight_by_importance=weight_by_importance)
 
     from wcwinner.config import ELO_HOME_ADVANTAGE
 

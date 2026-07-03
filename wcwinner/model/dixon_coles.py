@@ -102,7 +102,9 @@ def _tau_vectorized(home_goals: np.ndarray, away_goals: np.ndarray, lam: np.ndar
     return tau
 
 
-def _prepare_training_frame(results: pd.DataFrame, as_of: pd.Timestamp | None = None) -> pd.DataFrame:
+def _prepare_training_frame(
+    results: pd.DataFrame, as_of: pd.Timestamp | None = None, weight_by_importance: bool = False
+) -> pd.DataFrame:
     df = results.dropna(subset=["home_score", "away_score"]).copy()
     as_of = as_of or df["date"].max()
     df = df[df["date"] <= as_of]
@@ -110,6 +112,14 @@ def _prepare_training_frame(results: pd.DataFrame, as_of: pd.Timestamp | None = 
     df = df[df["date"] >= cutoff]
     df["days_ago"] = (as_of - df["date"]).dt.days
     df["weight"] = np.exp(-DC_XI_TIME_DECAY * df["days_ago"])
+    if weight_by_importance:
+        # Mirrors Elo's tournament-weighted K-factor: a World Cup match should
+        # count for more than a friendly played on the same day, not just
+        # whichever happened more recently. Normalized so "other tournament"
+        # (the old implicit baseline) stays at 1.0x.
+        from wcwinner.features.elo import ELO_K_OTHER_TOURNAMENT, tournament_k_factor
+
+        df["weight"] *= df["tournament"].map(tournament_k_factor) / ELO_K_OTHER_TOURNAMENT
     return df
 
 
@@ -169,11 +179,21 @@ def _blend_with_elo(
     return attack_out, defense_out, regression
 
 
-def fit(results: pd.DataFrame, elo_ratings: dict[str, float], as_of: pd.Timestamp | None = None) -> DixonColesModel:
+def fit(
+    results: pd.DataFrame,
+    elo_ratings: dict[str, float],
+    as_of: pd.Timestamp | None = None,
+    weight_by_importance: bool = False,
+) -> DixonColesModel:
     """Fit the Dixon-Coles model by MLE on time-decayed match history, then
     blend small-sample teams' attack/defense toward their Elo-implied values.
+
+    `weight_by_importance=True` additionally scales each match's weight by
+    tournament importance (World Cup > continental > qualifiers > friendly),
+    matching how the Elo K-factor already treats them. Off by default until
+    backtested against the plain recency-only weighting.
     """
-    df = _prepare_training_frame(results, as_of)
+    df = _prepare_training_frame(results, as_of, weight_by_importance)
 
     teams = sorted(set(df["home_team"]) | set(df["away_team"]))
     team_index = {t: i for i, t in enumerate(teams)}
