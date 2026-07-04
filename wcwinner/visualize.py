@@ -148,6 +148,60 @@ def render_prediction_card(
     return fig
 
 
+def render_parlay_card(result, save_path: str | None = None):
+    """Renders a `betbuilder.ParlayResult` as a bet-slip style card."""
+    from wcwinner.betbuilder import ParlayResult  # local import to avoid a cycle at module load
+
+    assert isinstance(result, ParlayResult)
+    n = len(result.legs)
+    top = 1.9 + 0.95 * n + 0.15 + 1.55 + 0.9 + (0.4 if result.used_non_edge_legs else 0) + 0.45
+    fig, ax = plt.subplots(figsize=(6.4, top * 0.68), facecolor=BG_COLOR)
+    ax.set_xlim(0, 10)
+    ax.set_ylim(0, top)
+    ax.axis("off")
+
+    ax.text(5, top - 0.5, "BET BUILDER · DIXON-COLES MODEL", ha="center", fontsize=11, weight="bold", color="#555")
+    ax.text(5, top - 1.15, f"{n}-Leg Parlay", ha="center", fontsize=15, weight="bold")
+
+    y = top - 1.9
+    for i, leg in enumerate(result.legs, start=1):
+        edge_color = "#888"
+        edge_text = "no market data"
+        if leg.edge is not None:
+            edge_color = HOME_COLOR if leg.edge > 0 else AWAY_COLOR
+            edge_text = f"{'+' if leg.edge > 0 else ''}{leg.edge*100:.1f}% edge"
+
+        ax.add_patch(mpatches.FancyBboxPatch((0.4, y - 0.68), 9.2, 0.72, boxstyle="round,pad=0.02", linewidth=0, facecolor=PANEL_COLOR))
+        ax.text(0.65, y - 0.22, f"{i}. {leg.pick_label}", ha="left", fontsize=10.5, weight="bold")
+        ax.text(0.65, y - 0.55, f"{leg.home_team} vs {leg.away_team}  ·  {leg.date}", ha="left", fontsize=8.5, color="#777")
+        ax.text(9.35, y - 0.22, f"{leg.odds:.2f}x", ha="right", fontsize=11, weight="bold", color=HOME_COLOR)
+        ax.text(9.35, y - 0.55, edge_text, ha="right", fontsize=8.5, color=edge_color, weight="bold")
+        y -= 0.95
+
+    y -= 0.15
+    ax.add_patch(mpatches.FancyBboxPatch((0.4, y - 1.55), 9.2, 1.5, boxstyle="round,pad=0.02", linewidth=0, facecolor="#333"))
+    ax.text(0.7, y - 0.35, "Target payout", ha="left", fontsize=10, color="#ccc")
+    ax.text(9.1, y - 0.35, f"{result.target_payout:.1f}x", ha="right", fontsize=12, weight="bold", color="white")
+    ax.text(0.7, y - 0.75, "Actual combined odds", ha="left", fontsize=10, color="#ccc")
+    ax.text(9.1, y - 0.75, f"{result.combined_odds:.2f}x", ha="right", fontsize=12, weight="bold", color="white")
+    ax.text(0.7, y - 1.15, f"Stake ${result.stake:.2f}  →  Payout", ha="left", fontsize=10, color="#ccc")
+    ax.text(9.1, y - 1.15, f"${result.payout:.2f}", ha="right", fontsize=13, weight="bold", color="#7bc47f")
+    y -= 1.9
+
+    ax.text(
+        5, max(y, 0.9),
+        f"Model's estimated chance ALL {n} legs hit: {result.combined_model_prob*100:.1f}%",
+        ha="center", fontsize=9.5, style="italic", color="#555",
+    )
+    if result.used_non_edge_legs:
+        ax.text(5, max(y - 0.4, 0.55), "Note: not enough positive-edge legs available in range - some picks here have no model edge over the market.", ha="center", fontsize=7.5, color="#b05c1a", wrap=True)
+    ax.text(5, 0.25, "Not a guarantee. For analysis/entertainment only - bet responsibly.", ha="center", fontsize=8, color="#999")
+
+    if save_path:
+        fig.savefig(save_path, dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
+    return fig
+
+
 def render_tournament_odds_card(sim_result, n_iterations: int, top_n: int = 12, save_path: str | None = None):
     """Horizontal bar chart of championship odds from `simulate.bracket.simulate_tournament`."""
     top = sim_result.head(top_n).iloc[::-1]  # reverse so the favorite ends up on top of the chart

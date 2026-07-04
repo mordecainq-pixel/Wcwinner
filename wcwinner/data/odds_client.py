@@ -70,9 +70,13 @@ def market_probabilities(client: OddsAPIClient | None = None) -> pd.DataFrame:
         if not (home_prices and away_prices and draw_prices):
             continue
 
-        raw_home = _decimal_to_implied_prob(sum(home_prices) / len(home_prices))
-        raw_draw = _decimal_to_implied_prob(sum(draw_prices) / len(draw_prices))
-        raw_away = _decimal_to_implied_prob(sum(away_prices) / len(away_prices))
+        avg_home_odds = sum(home_prices) / len(home_prices)
+        avg_draw_odds = sum(draw_prices) / len(draw_prices)
+        avg_away_odds = sum(away_prices) / len(away_prices)
+
+        raw_home = _decimal_to_implied_prob(avg_home_odds)
+        raw_draw = _decimal_to_implied_prob(avg_draw_odds)
+        raw_away = _decimal_to_implied_prob(avg_away_odds)
         overround = raw_home + raw_draw + raw_away  # >1 due to bookmaker margin
 
         rows.append(
@@ -85,6 +89,11 @@ def market_probabilities(client: OddsAPIClient | None = None) -> pd.DataFrame:
                 "market_draw_prob": raw_draw / overround,
                 "market_away_prob": raw_away / overround,
                 "overround": overround,
+                # Actual average bookmaker decimal prices (vig included) - what you'd
+                # really be paid, as opposed to the de-vigged "fair" probabilities above.
+                "market_home_odds": avg_home_odds,
+                "market_draw_odds": avg_draw_odds,
+                "market_away_odds": avg_away_odds,
             }
         )
 

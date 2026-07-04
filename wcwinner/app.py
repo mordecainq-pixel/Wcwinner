@@ -11,9 +11,11 @@ import pickle
 import matplotlib.pyplot as plt
 import streamlit as st
 
+from wcwinner.betbuilder import build_parlay, gather_candidate_legs
 from wcwinner.config import ELO_RATINGS_PATH
 from wcwinner.model import dixon_coles
 from wcwinner.simulate.match import predict_match
+from wcwinner.visualize import render_parlay_card
 
 
 @st.cache_resource
@@ -35,6 +37,14 @@ def main() -> None:
         st.error("No fitted model found. Run `python scripts/refresh_data.py` first.")
         return
 
+    tab_predict, tab_betbuilder = st.tabs(["Match Predictor", "Bet Builder"])
+    with tab_predict:
+        render_match_predictor(model, elo_ratings)
+    with tab_betbuilder:
+        render_bet_builder(model, elo_ratings)
+
+
+def render_match_predictor(model, elo_ratings) -> None:
     teams = sorted(model.attack.keys())
     col1, col2 = st.columns(2)
     with col1:
@@ -105,6 +115,54 @@ def main() -> None:
         f"training window, {away}: {model.match_counts.get(away, 0)} matches. Elo: {home} "
         f"{elo_ratings.get(home, float('nan')):.0f}, {away} {elo_ratings.get(away, float('nan')):.0f}."
     )
+
+
+def render_bet_builder(model, elo_ratings) -> None:
+    st.caption(
+        "Searches upcoming World Cup fixtures for a combination that hits your target payout, "
+        "preferring picks where the model disagrees favorably with the real betting market. "
+        "**Not a guarantee - for analysis/entertainment only.**"
+    )
+
+    c1, c2, c3 = st.columns(3)
+    payout = c1.number_input("Target payout (e.g. 5 = 5x)", min_value=1.1, value=5.0, step=0.5)
+    stake = c2.number_input("Stake ($)", min_value=1.0, value=10.0, step=5.0)
+    auto_legs = c3.checkbox("Let it choose # of legs", value=True)
+    n_legs = None if auto_legs else st.number_input("Number of legs", min_value=1, max_value=8, value=3)
+
+    use_date_range = st.checkbox("Limit to a date range", value=False)
+    date_from = date_to = None
+    if use_date_range:
+        dc1, dc2 = st.columns(2)
+        date_from = dc1.date_input("From").isoformat()
+        date_to = dc2.date_input("To").isoformat()
+
+    if st.button("Build my parlay", type="primary"):
+        legs = gather_candidate_legs(model, elo_ratings, date_from, date_to)
+        if not legs:
+            st.warning("No upcoming matches found in that range.")
+            return
+
+        result = build_parlay(legs, target_payout=payout, stake=stake, n_legs=n_legs)
+        if result is None:
+            st.warning("Could not build a parlay from the available matches.")
+            return
+
+        if result.used_non_edge_legs:
+            st.warning("Not enough positive-edge legs available in range - some picks here have no model edge over the market.")
+
+        st.subheader(f"{len(result.legs)}-Leg Parlay")
+        for i, leg in enumerate(result.legs, start=1):
+            edge_str = f"{leg.edge*100:+.1f}% edge" if leg.edge is not None else "no market data"
+            st.write(f"**{i}. {leg.pick_label}** -- {leg.odds:.2f}x ({edge_str}) -- {leg.home_team} vs {leg.away_team}, {leg.date}")
+
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Combined odds", f"{result.combined_odds:.2f}x", delta=f"target {payout:.1f}x")
+        m2.metric("Est. chance all legs hit", f"{result.combined_model_prob*100:.1f}%")
+        m3.metric("Payout", f"${result.payout:.2f}", delta=f"profit ${result.profit:.2f}")
+
+        fig = render_parlay_card(result)
+        st.pyplot(fig)
 
 
 if __name__ == "__main__":

@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import pickle
 
+from wcwinner.betbuilder import build_parlay, gather_candidate_legs
 from wcwinner.config import ELO_RATINGS_PATH
 from wcwinner.data.football_data_client import bracket_state
 from wcwinner.model import dixon_coles
@@ -17,7 +18,7 @@ from wcwinner.simulate.match import predict_match
 from wcwinner.validate.backtest import run_backtest
 from wcwinner.validate.calibration import calibration_report
 from wcwinner.validate.market_compare import compare_to_market
-from wcwinner.visualize import render_prediction_card
+from wcwinner.visualize import render_parlay_card, render_prediction_card
 
 
 def _load_model_and_elo():
@@ -106,6 +107,54 @@ def cmd_card(args: argparse.Namespace) -> None:
     print(f"Saved card to {args.out}")
 
 
+def cmd_betbuilder(args: argparse.Namespace) -> None:
+    payout = args.payout
+    if payout is None:
+        payout = float(input("Target payout multiple (e.g. 5 for 5x): ").strip())
+
+    n_legs = args.legs
+    if n_legs is None:
+        raw = input("How many legs? (blank = let it choose): ").strip()
+        n_legs = int(raw) if raw else None
+
+    stake = args.stake
+    if stake is None:
+        raw = input("Stake amount ($, blank = 10): ").strip()
+        stake = float(raw) if raw else 10.0
+
+    date_from, date_to = args.date_from, args.date_to
+    if date_from is None and date_to is None and not args.no_prompt_dates:
+        raw = input("Date range as YYYY-MM-DD,YYYY-MM-DD (blank = all upcoming): ").strip()
+        if raw:
+            date_from, date_to = [p.strip() for p in raw.split(",", 1)]
+
+    model, elo_ratings = _load_model_and_elo()
+    legs = gather_candidate_legs(model, elo_ratings, date_from, date_to)
+    if not legs:
+        print("No upcoming matches found in that range.")
+        return
+
+    result = build_parlay(legs, target_payout=payout, stake=stake, n_legs=n_legs)
+    if result is None:
+        print("Could not build a parlay from the available matches.")
+        return
+
+    print(f"\n{len(result.legs)}-leg parlay (target {payout:.1f}x):\n")
+    for i, leg in enumerate(result.legs, start=1):
+        edge = f"{leg.edge*100:+.1f}% edge" if leg.edge is not None else "no market data"
+        print(f"  {i}. {leg.pick_label:35s} {leg.odds:6.2f}x   {edge}   ({leg.date})")
+    print(f"\nCombined odds: {result.combined_odds:.2f}x (target was {payout:.1f}x)")
+    print(f"Model's estimated chance all legs hit: {result.combined_model_prob*100:.1f}%")
+    print(f"Stake ${result.stake:.2f} -> payout ${result.payout:.2f} (profit ${result.profit:.2f})")
+    if result.used_non_edge_legs:
+        print("\nNote: not enough positive-edge legs were available in range; some picks here have no model edge over the market.")
+    print("\nNot a guarantee. For analysis/entertainment only.")
+
+    if args.out:
+        render_parlay_card(result, save_path=args.out)
+        print(f"\nSaved card to {args.out}")
+
+
 def cmd_refresh(args: argparse.Namespace) -> None:
     from wcwinner.pipeline import run_full_refresh
 
@@ -156,6 +205,16 @@ def main() -> None:
     p_card.add_argument("--stage", default="ROUND OF 32")
     p_card.add_argument("--out", default="prediction_card.png")
     p_card.set_defaults(func=cmd_card)
+
+    p_bet = sub.add_parser("betbuilder", help="Build a parlay targeting a payout multiple (asks interactively if flags are omitted)")
+    p_bet.add_argument("--payout", type=float, default=None, help="Target payout multiple, e.g. 5 for 5x")
+    p_bet.add_argument("--legs", type=int, default=None, help="Exact number of legs (default: let it choose)")
+    p_bet.add_argument("--stake", type=float, default=None, help="Stake amount in dollars (default: 10)")
+    p_bet.add_argument("--date-from", default=None, help="YYYY-MM-DD")
+    p_bet.add_argument("--date-to", default=None, help="YYYY-MM-DD")
+    p_bet.add_argument("--no-prompt-dates", action="store_true", help="Skip the date-range prompt and use all upcoming matches")
+    p_bet.add_argument("--out", default=None, help="Optional PNG path to save a bet-slip card")
+    p_bet.set_defaults(func=cmd_betbuilder)
 
     args = parser.parse_args()
     args.func(args)
