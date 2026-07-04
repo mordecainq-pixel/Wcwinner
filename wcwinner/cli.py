@@ -9,7 +9,7 @@ from __future__ import annotations
 import argparse
 import pickle
 
-from wcwinner.betbuilder import combine_legs, gather_candidate_legs
+from wcwinner.betbuilder import combine_legs, find_best_combo, gather_match_options
 from wcwinner.config import ELO_RATINGS_PATH
 from wcwinner.data.football_data_client import bracket_state
 from wcwinner.model import dixon_coles
@@ -107,28 +107,62 @@ def cmd_card(args: argparse.Namespace) -> None:
     print(f"Saved card to {args.out}")
 
 
+def _print_result(result) -> None:
+    print(f"\n{len(result.legs)}-leg parlay:\n")
+    for i, leg in enumerate(result.legs, start=1):
+        print(f"  {i}. [{leg.market_type:6s}] {leg.pick_label:30s} {leg.odds:6.2f}x   {leg.reasoning}   ({leg.date})")
+    print(f"\nCombined odds: {result.combined_odds:.2f}x")
+    print(f"Model's estimated chance all legs hit: {result.combined_model_prob*100:.1f}%")
+    print(f"Stake ${result.stake:.2f} -> payout ${result.payout:.2f} (profit ${result.profit:.2f})")
+    print("\nNot a guarantee. For analysis/entertainment only.")
+
+
 def cmd_betbuilder(args: argparse.Namespace) -> None:
+    bookmakers = args.bookmakers
+    if bookmakers is None and not args.no_prompt_bookmakers:
+        raw = input(
+            "Sportsbook to use, e.g. fanduel, draftkings, betmgm, pinnacle "
+            "(blank = average across all available; comma-separate for a few; "
+            "note: Kalshi/Polymarket are not available through this data source): "
+        ).strip()
+        bookmakers = raw or None
+
     model, elo_ratings = _load_model_and_elo()
-    legs = gather_candidate_legs(model, elo_ratings)
-    if not legs:
+    matches = gather_match_options(model, elo_ratings, bookmakers=bookmakers)
+    if not matches:
         print("No upcoming matches found.")
         return
 
-    print("\nAvailable matches, best pick per match, ranked by expected value:\n")
-    for i, leg in enumerate(legs, start=1):
-        ev_str = f"{leg.ev*100:+.1f}% EV" if leg.market_prob is not None else "no market data"
-        print(
-            f"  {i:>2}. [{leg.market_type:6s}] {leg.pick_label:30s} {leg.odds:6.2f}x   "
-            f"model chance {leg.model_prob*100:4.1f}%   {ev_str}   ({leg.home_team} vs {leg.away_team}, {leg.date})"
-        )
+    print("\nAvailable matches (best pick shown for reference):\n")
+    for i, m in enumerate(matches, start=1):
+        b = m.best_leg
+        print(f"  {i:>2}. {m.home_team} vs {m.away_team} ({m.date})  -- best pick: {b.pick_label} {b.odds:.2f}x, {b.reasoning}")
 
-    if args.select:
-        chosen_idx = [int(x) for x in args.select.split(",")]
+    if args.matches:
+        chosen_idx = [int(x) for x in args.matches.split(",")]
     else:
         raw = input("\nWhich matches do you want in your parlay? (comma-separated numbers, or 'all'): ").strip()
-        chosen_idx = list(range(1, len(legs) + 1)) if raw.lower() == "all" else [int(x) for x in raw.split(",")]
+        chosen_idx = list(range(1, len(matches) + 1)) if raw.lower() == "all" else [int(x) for x in raw.split(",")]
+    chosen_matches = [matches[i - 1] for i in chosen_idx]
 
-    selected = [legs[i - 1] for i in chosen_idx]
+    target = args.target
+    if target is None and not args.no_prompt_target:
+        raw = input("Target payout multiple, e.g. 5 for 5x (blank = just use the single best pick per match): ").strip()
+        target = float(raw) if raw else None
+
+    if target is not None:
+        selected = find_best_combo(chosen_matches, target)
+        actual = 1.0
+        for leg in selected:
+            actual *= leg.odds
+        if abs(actual - target) / target > 0.15:
+            print(
+                f"\nHeads up: the closest combination available from these matches is "
+                f"{actual:.2f}x -- can't get near {target:.1f}x without adding more matches "
+                f"or picking a longshot leg on purpose."
+            )
+    else:
+        selected = [m.best_leg for m in chosen_matches]
 
     stake = args.stake
     if stake is None:
@@ -136,15 +170,11 @@ def cmd_betbuilder(args: argparse.Namespace) -> None:
         stake = float(raw) if raw else 10.0
 
     result = combine_legs(selected, stake=stake)
+    _print_result(result)
 
-    print(f"\n{len(result.legs)}-leg parlay:\n")
-    for i, leg in enumerate(result.legs, start=1):
-        edge = f"{leg.edge*100:+.1f}% edge, {leg.ev*100:+.1f}% EV" if leg.edge is not None else "no market data"
-        print(f"  {i}. [{leg.market_type:6s}] {leg.pick_label:30s} {leg.odds:6.2f}x   {edge}   ({leg.date})")
-    print(f"\nCombined odds: {result.combined_odds:.2f}x")
-    print(f"Model's estimated chance all legs hit: {result.combined_model_prob*100:.1f}%")
-    print(f"Stake ${result.stake:.2f} -> payout ${result.payout:.2f} (profit ${result.profit:.2f})")
-    print("\nNot a guarantee. For analysis/entertainment only.")
+    if args.out:
+        render_parlay_card(result, save_path=args.out)
+        print(f"\nSaved card to {args.out}")
 
     if args.out:
         render_parlay_card(result, save_path=args.out)
@@ -203,8 +233,12 @@ def main() -> None:
     p_card.add_argument("--out", default="prediction_card.png")
     p_card.set_defaults(func=cmd_card)
 
-    p_bet = sub.add_parser("betbuilder", help="Lists every available match's best-EV pick; you choose which ones go in your parlay")
-    p_bet.add_argument("--select", default=None, help="Comma-separated match numbers to include (skips the interactive prompt)")
+    p_bet = sub.add_parser("betbuilder", help="Pick matches and (optionally) a target payout; searches only within what you picked")
+    p_bet.add_argument("--bookmakers", default=None, help="e.g. fanduel or fanduel,draftkings (default: average across all)")
+    p_bet.add_argument("--no-prompt-bookmakers", action="store_true", help="Skip the sportsbook prompt and average across all")
+    p_bet.add_argument("--matches", default=None, help="Comma-separated match numbers to include (skips the interactive prompt)")
+    p_bet.add_argument("--target", type=float, default=None, help="Target payout multiple, e.g. 5 for 5x")
+    p_bet.add_argument("--no-prompt-target", action="store_true", help="Skip the target prompt and just use each match's best pick")
     p_bet.add_argument("--stake", type=float, default=None, help="Stake amount in dollars (default: 10)")
     p_bet.add_argument("--out", default=None, help="Optional PNG path to save a bet-slip card")
     p_bet.set_defaults(func=cmd_betbuilder)

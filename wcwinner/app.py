@@ -11,7 +11,7 @@ import pickle
 import matplotlib.pyplot as plt
 import streamlit as st
 
-from wcwinner.betbuilder import combine_legs, gather_candidate_legs
+from wcwinner.betbuilder import KNOWN_BOOKMAKERS, combine_legs, find_best_combo, gather_match_options
 from wcwinner.config import ELO_RATINGS_PATH
 from wcwinner.model import dixon_coles
 from wcwinner.simulate.match import predict_match
@@ -119,40 +119,58 @@ def render_match_predictor(model, elo_ratings) -> None:
 
 def render_bet_builder(model, elo_ratings) -> None:
     st.caption(
-        "Every available match's best pick, ranked by real expected value (model probability "
-        "vs. the actual betting market). You choose which ones go in your parlay - nothing is "
-        "auto-selected or forced to hit a target. **Not a guarantee - for analysis/entertainment only.**"
+        "Pick which matches interest you, optionally give a target payout, and it searches "
+        "only within those matches (every bet type, not just moneyline) for the best fit - "
+        "never a forced longshot to hit a number. **Not a guarantee - for analysis/entertainment only.**"
     )
 
-    legs = gather_candidate_legs(model, elo_ratings)
-    if not legs:
+    book_choice = st.selectbox(
+        "Sportsbook", ["Average across all"] + KNOWN_BOOKMAKERS,
+        help="Kalshi and Polymarket are not available through this data source.",
+    )
+    bookmakers = None if book_choice == "Average across all" else book_choice
+
+    matches = gather_match_options(model, elo_ratings, bookmakers=bookmakers)
+    if not matches:
         st.warning("No upcoming matches found.")
         return
 
-    options = []
-    for leg in legs:
-        ev_str = f"{leg.ev*100:+.1f}% EV" if leg.market_prob is not None else "no market data"
-        options.append(
-            f"[{leg.market_type}] {leg.pick_label} -- {leg.odds:.2f}x -- model {leg.model_prob*100:.0f}% -- "
-            f"{ev_str} -- {leg.home_team} vs {leg.away_team} ({leg.date})"
-        )
-    leg_by_option = dict(zip(options, legs))
+    match_labels = [f"{m.home_team} vs {m.away_team} ({m.date})" for m in matches]
+    match_by_label = dict(zip(match_labels, matches))
+    chosen_labels = st.multiselect("Which matches do you want in your parlay?", match_labels)
 
-    selected_options = st.multiselect("Pick your legs (as many as you want)", options)
+    if chosen_labels:
+        st.caption("Best pick per chosen match, for reference:")
+        for label in chosen_labels:
+            b = match_by_label[label].best_leg
+            st.write(f"- **{label}**: {b.pick_label} {b.odds:.2f}x -- {b.reasoning}")
+
+    use_target = st.checkbox("Target a specific payout", value=False)
+    target = st.number_input("Target payout (e.g. 5 = 5x)", min_value=1.1, value=5.0, step=0.5) if use_target else None
     stake = st.number_input("Stake ($)", min_value=1.0, value=10.0, step=5.0)
 
     if st.button("Build my parlay", type="primary"):
-        if not selected_options:
+        if not chosen_labels:
             st.warning("Pick at least one match first.")
             return
 
-        selected = [leg_by_option[o] for o in selected_options]
+        chosen_matches = [match_by_label[label] for label in chosen_labels]
+
+        if target is not None:
+            selected = find_best_combo(chosen_matches, target)
+            actual = 1.0
+            for leg in selected:
+                actual *= leg.odds
+            if abs(actual - target) / target > 0.15:
+                st.info(f"Closest available from these matches is {actual:.2f}x -- can't get near {target:.1f}x without adding more matches or accepting a longshot leg.")
+        else:
+            selected = [m.best_leg for m in chosen_matches]
+
         result = combine_legs(selected, stake=stake)
 
         st.subheader(f"{len(result.legs)}-Leg Parlay")
         for i, leg in enumerate(result.legs, start=1):
-            edge_str = f"{leg.edge*100:+.1f}% edge, {leg.ev*100:+.1f}% EV" if leg.edge is not None else "no market data"
-            st.write(f"**{i}. [{leg.market_type}] {leg.pick_label}** -- {leg.odds:.2f}x ({edge_str}) -- {leg.home_team} vs {leg.away_team}, {leg.date}")
+            st.write(f"**{i}. [{leg.market_type}] {leg.pick_label}** -- {leg.odds:.2f}x -- {leg.reasoning} -- {leg.home_team} vs {leg.away_team}, {leg.date}")
 
         m1, m2, m3 = st.columns(3)
         m1.metric("Combined odds", f"{result.combined_odds:.2f}x")

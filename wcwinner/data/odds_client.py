@@ -38,14 +38,22 @@ class OddsAPIClient:
             {"regions": regions, "markets": markets},
         )
 
-    def wc_odds_multi_market(self, regions: str = "us,uk,eu") -> list[dict]:
+    def wc_odds_multi_market(self, regions: str = "us,uk,eu", bookmakers: str | None = None) -> list[dict]:
         """h2h + totals (over/under) + spreads (handicap). BTTS isn't offered
         by this provider for soccer ("Markets not supported by this endpoint:
-        btts" - confirmed directly against the live API)."""
-        return self._get(
-            f"/sports/{ODDS_API_WC_SPORT_KEY}/odds/",
-            {"regions": regions, "markets": "h2h,totals,spreads"},
-        )
+        btts" - confirmed directly against the live API). `bookmakers` is a
+        comma-separated list of specific bookmaker keys (e.g. "fanduel" or
+        "fanduel,draftkings") and overrides `regions` when given -- the API
+        doesn't accept both at once. Kalshi and Polymarket are NOT available
+        through this provider for this sport (confirmed directly); FanDuel,
+        DraftKings, BetMGM, Pinnacle, and ~50 others are.
+        """
+        params = {"markets": "h2h,totals,spreads"}
+        if bookmakers:
+            params["bookmakers"] = bookmakers
+        else:
+            params["regions"] = regions
+        return self._get(f"/sports/{ODDS_API_WC_SPORT_KEY}/odds/", params)
 
 
 def _decimal_to_implied_prob(decimal_odds: float) -> float:
@@ -124,13 +132,15 @@ def _average_by_most_common_point(entries: list[tuple[float, float]]) -> tuple[f
     return common_point, sum(prices) / len(prices)
 
 
-def multi_market_odds(client: OddsAPIClient | None = None) -> list[dict]:
+def multi_market_odds(client: OddsAPIClient | None = None, bookmakers: str | None = None) -> list[dict]:
     """One entry per upcoming WC fixture with h2h, totals, and spreads market
     data (whichever are available), used by the bet builder to consider more
-    than just the match-result market.
+    than just the match-result market. `bookmakers`, e.g. "fanduel" or
+    "fanduel,draftkings", restricts to those specific sportsbooks instead of
+    averaging across every book the API covers.
     """
     client = client or OddsAPIClient()
-    events = client.wc_odds_multi_market()
+    events = client.wc_odds_multi_market(bookmakers=bookmakers)
 
     results = []
     for event in events:
