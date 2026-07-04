@@ -103,7 +103,10 @@ def _tau_vectorized(home_goals: np.ndarray, away_goals: np.ndarray, lam: np.ndar
 
 
 def _prepare_training_frame(
-    results: pd.DataFrame, as_of: pd.Timestamp | None = None, weight_by_importance: bool = False
+    results: pd.DataFrame,
+    as_of: pd.Timestamp | None = None,
+    weight_by_importance: bool = False,
+    xi: float = DC_XI_TIME_DECAY,
 ) -> pd.DataFrame:
     df = results.dropna(subset=["home_score", "away_score"]).copy()
     as_of = as_of or df["date"].max()
@@ -111,7 +114,7 @@ def _prepare_training_frame(
     cutoff = as_of - pd.Timedelta(days=365 * DC_LOOKBACK_YEARS)
     df = df[df["date"] >= cutoff]
     df["days_ago"] = (as_of - df["date"]).dt.days
-    df["weight"] = np.exp(-DC_XI_TIME_DECAY * df["days_ago"])
+    df["weight"] = np.exp(-xi * df["days_ago"])
     if weight_by_importance:
         # Mirrors Elo's tournament-weighted K-factor: a World Cup match should
         # count for more than a friendly played on the same day, not just
@@ -184,6 +187,7 @@ def fit(
     elo_ratings: dict[str, float],
     as_of: pd.Timestamp | None = None,
     weight_by_importance: bool = False,
+    xi: float = DC_XI_TIME_DECAY,
 ) -> DixonColesModel:
     """Fit the Dixon-Coles model by MLE on time-decayed match history, then
     blend small-sample teams' attack/defense toward their Elo-implied values.
@@ -192,8 +196,12 @@ def fit(
     tournament importance (World Cup > continental > qualifiers > friendly),
     matching how the Elo K-factor already treats them. Off by default until
     backtested against the plain recency-only weighting.
+
+    `xi` is the time-decay rate (per day); higher means recent matches (e.g.
+    a hot run in the current tournament) dominate more relative to
+    career-long history. Defaults to the backtested value in config.
     """
-    df = _prepare_training_frame(results, as_of, weight_by_importance)
+    df = _prepare_training_frame(results, as_of, weight_by_importance, xi)
 
     teams = sorted(set(df["home_team"]) | set(df["away_team"]))
     team_index = {t: i for i, t in enumerate(teams)}

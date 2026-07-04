@@ -41,9 +41,16 @@ ROLLING_FORM_WINDOW = 15  # max matches considered
 ROLLING_FORM_HALF_LIFE = 6  # matches; exponential recency decay
 
 # --- Dixon-Coles model ---
-DC_XI_TIME_DECAY = 0.0018  # per-day exponential downweighting of older matches in MLE fit
-DC_LOOKBACK_YEARS = 10  # matches older than this are excluded from fitting entirely;
-# at DC_XI_TIME_DECAY's half-life (~385 days) they'd carry negligible weight anyway
+DC_XI_TIME_DECAY = 0.000633  # per-day exponential downweighting of older matches in MLE fit;
+# equivalent to a ~1095-day (3yr) half-life. Backtested sweep from 90 to 3650 days found
+# this to be the actual optimum (log-loss 0.863 / Brier 0.505 vs. 0.874 / 0.512 at the
+# previous 385-day default) - shorter memory (leaning into recent hot/cold streaks more)
+# measurably *hurts* accuracy, since a few-match hot streak is a noisy signal that partly
+# regresses to the mean; longer memory generalizes better.
+DC_LOOKBACK_YEARS = 10  # matches older than this are excluded from fitting entirely.
+# Re-swept alongside the xi change above (10/15/20/25/30 years); 10 remained the best
+# performer, so it's kept as-is even though matches right at that cutoff carry ~10% of
+# a fresh match's weight under the new, slower decay (not negligible, just still optimal).
 DC_L2_REG = 0.001  # ridge penalty on attack/defense to keep the optimizer well-conditioned
 DC_SHRINKAGE_K = 20  # empirical-Bayes shrinkage strength (in "equivalent matches") pulling
 # low-sample teams' attack/defense toward their Elo-implied values

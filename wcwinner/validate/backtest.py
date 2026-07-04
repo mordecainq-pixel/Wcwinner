@@ -31,6 +31,7 @@ def run_backtest(
     cutoff_date: str | pd.Timestamp,
     max_test_matches: int | None = None,
     weight_by_importance: bool = False,
+    xi: float | None = None,
 ) -> dict:
     cutoff_date = pd.Timestamp(cutoff_date)
     train = results[results["date"] <= cutoff_date].copy()
@@ -41,7 +42,10 @@ def run_backtest(
         test = test.head(max_test_matches)
 
     _, elo_ratings = compute_elo_history(train)
-    model = fit(train, elo_ratings, as_of=cutoff_date, weight_by_importance=weight_by_importance)
+    fit_kwargs = {"weight_by_importance": weight_by_importance}
+    if xi is not None:
+        fit_kwargs["xi"] = xi
+    model = fit(train, elo_ratings, as_of=cutoff_date, **fit_kwargs)
 
     from wcwinner.config import ELO_HOME_ADVANTAGE
 
