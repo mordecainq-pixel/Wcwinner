@@ -168,11 +168,11 @@ def render_parlay_card(result, save_path: str | None = None):
         edge_color = "#888"
         edge_text = "no market data"
         if leg.edge is not None:
-            edge_color = HOME_COLOR if leg.edge > 0 else AWAY_COLOR
-            edge_text = f"{'+' if leg.edge > 0 else ''}{leg.edge*100:.1f}% edge"
+            edge_color = HOME_COLOR if leg.ev > 0 else AWAY_COLOR
+            edge_text = f"{leg.ev*100:+.1f}% EV"
 
         ax.add_patch(mpatches.FancyBboxPatch((0.4, y - 0.68), 9.2, 0.72, boxstyle="round,pad=0.02", linewidth=0, facecolor=PANEL_COLOR))
-        ax.text(0.65, y - 0.22, f"{i}. {leg.pick_label}", ha="left", fontsize=10.5, weight="bold")
+        ax.text(0.65, y - 0.22, f"{i}. [{leg.market_type}] {leg.pick_label}", ha="left", fontsize=10.5, weight="bold")
         ax.text(0.65, y - 0.55, f"{leg.home_team} vs {leg.away_team}  ·  {leg.date}", ha="left", fontsize=8.5, color="#777")
         ax.text(9.35, y - 0.22, f"{leg.odds:.2f}x", ha="right", fontsize=11, weight="bold", color=HOME_COLOR)
         ax.text(9.35, y - 0.55, edge_text, ha="right", fontsize=8.5, color=edge_color, weight="bold")

@@ -153,8 +153,8 @@ def render_bet_builder(model, elo_ratings) -> None:
 
         st.subheader(f"{len(result.legs)}-Leg Parlay")
         for i, leg in enumerate(result.legs, start=1):
-            edge_str = f"{leg.edge*100:+.1f}% edge" if leg.edge is not None else "no market data"
-            st.write(f"**{i}. {leg.pick_label}** -- {leg.odds:.2f}x ({edge_str}) -- {leg.home_team} vs {leg.away_team}, {leg.date}")
+            edge_str = f"{leg.edge*100:+.1f}% edge, {leg.ev*100:+.1f}% EV" if leg.edge is not None else "no market data"
+            st.write(f"**{i}. [{leg.market_type}] {leg.pick_label}** -- {leg.odds:.2f}x ({edge_str}) -- {leg.home_team} vs {leg.away_team}, {leg.date}")
 
         m1, m2, m3 = st.columns(3)
         m1.metric("Combined odds", f"{result.combined_odds:.2f}x", delta=f"target {payout:.1f}x")

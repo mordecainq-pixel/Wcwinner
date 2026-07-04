@@ -141,8 +141,8 @@ def cmd_betbuilder(args: argparse.Namespace) -> None:
 
     print(f"\n{len(result.legs)}-leg parlay (target {payout:.1f}x):\n")
     for i, leg in enumerate(result.legs, start=1):
-        edge = f"{leg.edge*100:+.1f}% edge" if leg.edge is not None else "no market data"
-        print(f"  {i}. {leg.pick_label:35s} {leg.odds:6.2f}x   {edge}   ({leg.date})")
+        edge = f"{leg.edge*100:+.1f}% edge, {leg.ev*100:+.1f}% EV" if leg.edge is not None else "no market data"
+        print(f"  {i}. [{leg.market_type:6s}] {leg.pick_label:30s} {leg.odds:6.2f}x   {edge}   ({leg.date})")
     print(f"\nCombined odds: {result.combined_odds:.2f}x (target was {payout:.1f}x)")
     print(f"Model's estimated chance all legs hit: {result.combined_model_prob*100:.1f}%")
     print(f"Stake ${result.stake:.2f} -> payout ${result.payout:.2f} (profit ${result.profit:.2f})")

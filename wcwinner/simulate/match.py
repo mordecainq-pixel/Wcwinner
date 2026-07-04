@@ -66,3 +66,21 @@ def predict_match(
         )
 
     return result
+
+
+def prob_total_over(matrix: np.ndarray, line: float) -> float:
+    """P(total goals > line) from a scoreline probability matrix, e.g. line=2.5."""
+    n = matrix.shape[0]
+    idx = np.arange(n)
+    totals = idx[:, None] + idx[None, :]
+    return float(matrix[totals > line].sum())
+
+
+def prob_home_covers_spread(matrix: np.ndarray, home_point: float) -> float:
+    """P(home_goals + home_point - away_goals > 0), i.e. home covers a spread
+    like +0.5 (draw-no-bet in home's favor) or -1.5 (home must win by 2+).
+    """
+    n = matrix.shape[0]
+    idx = np.arange(n)
+    margin = idx[:, None] + home_point - idx[None, :]
+    return float(matrix[margin > 0].sum())
