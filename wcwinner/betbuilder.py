@@ -1,30 +1,22 @@
-"""Parlay / bet-slip builder.
+"""Bet-slip builder.
 
-Give it a target payout multiple (e.g. 5x), a date range, and optionally how
-many legs you want, and it searches upcoming World Cup fixtures across three
-market types -- match result (h2h), total goals (over/under), and handicap
-(spread) -- for the combination that reaches that payout using real market
-odds, prioritizing legs with positive expected value: the model's probability
-of that outcome times the real payout, minus 1. That's the actual "does the
-model think this is a good bet" test, not just "does the model's probability
-exceed the market's" -- a small probability edge can still be a bad bet once
-the bookmaker's margin is priced in, and EV is what accounts for that.
+Redesigned from an earlier "search for a combination that hits a target
+payout" approach, which broke down when the candidate pool was small (it
+would force together whatever legs existed regardless of how far off the
+target they landed, rather than admitting it couldn't get close). The fix
+is to stop searching/guessing on the user's behalf: `gather_candidate_legs`
+surfaces every available match's single best pick (by real expected value
+across the h2h/totals/spread markets), ranked best-to-worst, and the caller
+(CLI/app) lets the user pick however many of those they actually want.
+`combine_legs` just does the payout/probability math for that exact
+selection -- no target, no search, no surprises.
 
-Only one leg is taken per match (the single highest-EV option across all
-three market types for that match), which keeps legs statistically
-independent of each other -- combining two bets from the *same* match (e.g.
-"Home wins" and "Over 2.5") would violate the independence assumption the
-combined-odds/combined-probability math relies on, since those two outcomes
-are correlated within one game.
-
-This does not recommend real-money betting. It surfaces what the model's
-edge, if real, would imply about a same-day multi -- nothing here is a
-guarantee, and every rendered output says so.
+This does not recommend real-money betting. It surfaces the model's read
+on value -- nothing here is a guarantee, and every rendered output says so.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
-from itertools import combinations
 
 from wcwinner.data.football_data_client import bracket_state
 from wcwinner.data.odds_client import multi_market_odds
@@ -53,11 +45,7 @@ class Leg:
 
     @property
     def ev(self) -> float:
-        """Expected value per dollar staked: model_prob * real_payout_odds - 1.
-        This is the actual "does the model think this is a good bet" test --
-        unlike `edge`, it accounts for the bookmaker's margin, not just
-        whether the model's probability beats the de-vigged market number.
-        """
+        """Expected value per dollar staked: model_prob * real_payout_odds - 1."""
         return self.model_prob * self.odds - 1.0
 
     @property
@@ -97,7 +85,7 @@ def _totals_candidates(home, away, date, matrix, market_totals) -> list[Leg]:
 
 def _spread_candidates(home, away, date, matrix, market_spreads) -> list[Leg]:
     if not market_spreads:
-        return []  # no sensible default handicap line to offer without the market's guidance
+        return []
     home_point = market_spreads["home_point"]
     p_home_covers = prob_home_covers_spread(matrix, home_point)
     return [
@@ -112,8 +100,10 @@ def gather_candidate_legs(
     date_from: str | None = None,
     date_to: str | None = None,
 ) -> list[Leg]:
-    """One Leg per not-yet-played WC 2026 match in the date range: the single
-    highest-EV pick across h2h, totals, and spread markets for that match.
+    """One Leg per not-yet-played WC 2026 match: the single highest-EV pick
+    across h2h, totals, and spread markets for that match. `date_from`/
+    `date_to` are optional narrowing filters, not required -- leave both
+    None to see every available match.
     """
     bs = bracket_state()
     upcoming = [
@@ -144,7 +134,7 @@ def gather_candidate_legs(
         )
         best_legs.append(max(candidates, key=lambda l: (l.ev, l.model_prob)))
 
-    return best_legs
+    return sorted(best_legs, key=lambda l: l.ev, reverse=True)
 
 
 @dataclass
@@ -152,9 +142,7 @@ class ParlayResult:
     legs: list[Leg]
     combined_odds: float
     combined_model_prob: float
-    target_payout: float
     stake: float
-    used_non_edge_legs: bool
 
     @property
     def payout(self) -> float:
@@ -165,48 +153,15 @@ class ParlayResult:
         return self.payout - self.stake
 
 
-def build_parlay(
-    legs: list[Leg],
-    target_payout: float,
-    stake: float = 10.0,
-    n_legs: int | None = None,
-    max_legs: int = 8,
-) -> ParlayResult | None:
-    """Exhaustively search combinations of legs for whichever gets closest to
-    `target_payout` using real market odds where available, tie-broken by
-    highest combined model probability. Restricted to positive-EV legs (or
-    legs with no market data to assess) when there are enough of them; falls
-    back to the full pool (flagged via `used_non_edge_legs`) only if there
-    aren't.
+def combine_legs(legs: list[Leg], stake: float = 10.0) -> ParlayResult | None:
+    """Payout/probability math for exactly the legs given -- no search, no
+    target, no substitutions. The user picked these; this just does the math.
     """
     if not legs:
         return None
-
-    positive_ev_pool = [l for l in legs if l.market_prob is None or l.ev > 0]
-    min_needed = n_legs or 2
-    pool, used_non_edge_legs = (
-        (positive_ev_pool, False)
-        if len(positive_ev_pool) >= min_needed
-        else (legs, len(positive_ev_pool) < len(legs))
-    )
-
-    ranked = sorted(pool, key=lambda l: l.ev, reverse=True)
-    leg_counts = [n_legs] if n_legs else list(range(2, min(max_legs, len(ranked)) + 1))
-
-    best: ParlayResult | None = None
-    best_score = None
-    for k in leg_counts:
-        if k < 1 or k > len(ranked):
-            continue
-        for combo in combinations(ranked, k):
-            combined_odds = 1.0
-            combined_prob = 1.0
-            for leg in combo:
-                combined_odds *= leg.odds
-                combined_prob *= leg.model_prob
-            score = (abs(combined_odds - target_payout), -combined_prob)
-            if best_score is None or score < best_score:
-                best_score = score
-                best = ParlayResult(list(combo), combined_odds, combined_prob, target_payout, stake, used_non_edge_legs)
-
-    return best
+    combined_odds = 1.0
+    combined_prob = 1.0
+    for leg in legs:
+        combined_odds *= leg.odds
+        combined_prob *= leg.model_prob
+    return ParlayResult(list(legs), combined_odds, combined_prob, stake)

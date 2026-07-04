@@ -154,7 +154,7 @@ def render_parlay_card(result, save_path: str | None = None):
 
     assert isinstance(result, ParlayResult)
     n = len(result.legs)
-    top = 1.9 + 0.95 * n + 0.15 + 1.55 + 0.9 + (0.4 if result.used_non_edge_legs else 0) + 0.45
+    top = 1.9 + 0.95 * n + 0.15 + 1.2 + 0.9 + 0.45
     fig, ax = plt.subplots(figsize=(6.4, top * 0.68), facecolor=BG_COLOR)
     ax.set_xlim(0, 10)
     ax.set_ylim(0, top)
@@ -179,22 +179,18 @@ def render_parlay_card(result, save_path: str | None = None):
         y -= 0.95
 
     y -= 0.15
-    ax.add_patch(mpatches.FancyBboxPatch((0.4, y - 1.55), 9.2, 1.5, boxstyle="round,pad=0.02", linewidth=0, facecolor="#333"))
-    ax.text(0.7, y - 0.35, "Target payout", ha="left", fontsize=10, color="#ccc")
-    ax.text(9.1, y - 0.35, f"{result.target_payout:.1f}x", ha="right", fontsize=12, weight="bold", color="white")
-    ax.text(0.7, y - 0.75, "Actual combined odds", ha="left", fontsize=10, color="#ccc")
-    ax.text(9.1, y - 0.75, f"{result.combined_odds:.2f}x", ha="right", fontsize=12, weight="bold", color="white")
-    ax.text(0.7, y - 1.15, f"Stake ${result.stake:.2f}  →  Payout", ha="left", fontsize=10, color="#ccc")
-    ax.text(9.1, y - 1.15, f"${result.payout:.2f}", ha="right", fontsize=13, weight="bold", color="#7bc47f")
-    y -= 1.9
+    ax.add_patch(mpatches.FancyBboxPatch((0.4, y - 1.2), 9.2, 1.15, boxstyle="round,pad=0.02", linewidth=0, facecolor="#333"))
+    ax.text(0.7, y - 0.35, "Combined odds", ha="left", fontsize=10, color="#ccc")
+    ax.text(9.1, y - 0.35, f"{result.combined_odds:.2f}x", ha="right", fontsize=12, weight="bold", color="white")
+    ax.text(0.7, y - 0.8, f"Stake ${result.stake:.2f}  →  Payout", ha="left", fontsize=10, color="#ccc")
+    ax.text(9.1, y - 0.8, f"${result.payout:.2f}", ha="right", fontsize=13, weight="bold", color="#7bc47f")
+    y -= 1.55
 
     ax.text(
         5, max(y, 0.9),
         f"Model's estimated chance ALL {n} legs hit: {result.combined_model_prob*100:.1f}%",
         ha="center", fontsize=9.5, style="italic", color="#555",
     )
-    if result.used_non_edge_legs:
-        ax.text(5, max(y - 0.4, 0.55), "Note: not enough positive-edge legs available in range - some picks here have no model edge over the market.", ha="center", fontsize=7.5, color="#b05c1a", wrap=True)
     ax.text(5, 0.25, "Not a guarantee. For analysis/entertainment only - bet responsibly.", ha="center", fontsize=8, color="#999")
 
     if save_path:
