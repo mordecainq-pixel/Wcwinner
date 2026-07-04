@@ -26,6 +26,18 @@ def load_model_and_elo():
     return model, elo_ratings
 
 
+@st.cache_data(ttl=90, show_spinner="Fetching odds and bracket state...")
+def _cached_match_options(_model, _elo_ratings, bookmakers):
+    """Streamlit reruns the whole script on every widget interaction (dropdown,
+    multiselect, stake field, button click) - without caching, each one of
+    those refetches bracket state + odds from scratch, which is exactly what
+    blew through football-data.org's 10-req/min free tier in practice. `_model`/
+    `_elo_ratings` are underscore-prefixed so Streamlit doesn't try to hash
+    the (unhashable) model object; only `bookmakers` determines the cache key.
+    """
+    return gather_match_options(_model, _elo_ratings, bookmakers=bookmakers)
+
+
 def main() -> None:
     st.set_page_config(page_title="WC 2026 Predictor", layout="centered")
     st.title("World Cup 2026 Match Predictor")
@@ -130,7 +142,7 @@ def render_bet_builder(model, elo_ratings) -> None:
     )
     bookmakers = None if book_choice == "Average across all" else book_choice
 
-    matches = gather_match_options(model, elo_ratings, bookmakers=bookmakers)
+    matches = _cached_match_options(model, elo_ratings, bookmakers)
     if not matches:
         st.warning("No upcoming matches found.")
         return

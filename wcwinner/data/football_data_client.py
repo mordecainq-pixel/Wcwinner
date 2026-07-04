@@ -19,27 +19,37 @@ from wcwinner.data.team_names import to_canonical
 _BASE_URL = "https://api.football-data.org/v4"
 _MIN_REQUEST_INTERVAL = 6.5  # seconds; free tier allows 10 req/min
 
+# Module-level (not per-instance) so the spacing actually holds across calls
+# that each construct their own FootballDataClient -- bracket_state() does
+# exactly that on every call, so per-instance timing never did anything.
+_last_request_ts = 0.0
+
 
 class FootballDataClient:
     def __init__(self, token: str | None = None):
         self.token = token or FOOTBALL_DATA_API_TOKEN
         if not self.token:
             raise RuntimeError("FOOTBALL_DATA_API_TOKEN is not set in .env")
-        self._last_request_ts = 0.0
 
     def _get(self, path: str, params: dict | None = None) -> dict:
-        elapsed = time.monotonic() - self._last_request_ts
+        global _last_request_ts
+        elapsed = time.monotonic() - _last_request_ts
         if elapsed < _MIN_REQUEST_INTERVAL:
             time.sleep(_MIN_REQUEST_INTERVAL - elapsed)
-        resp = requests.get(
-            f"{_BASE_URL}{path}",
-            headers={"X-Auth-Token": self.token},
-            params=params,
-            timeout=15,
-        )
-        self._last_request_ts = time.monotonic()
-        resp.raise_for_status()
-        return resp.json()
+
+        for attempt in range(3):
+            resp = requests.get(
+                f"{_BASE_URL}{path}",
+                headers={"X-Auth-Token": self.token},
+                params=params,
+                timeout=15,
+            )
+            _last_request_ts = time.monotonic()
+            if resp.status_code == 429 and attempt < 2:
+                time.sleep(15)  # free tier resets quickly; back off and retry rather than crash
+                continue
+            resp.raise_for_status()
+            return resp.json()
 
     def competition_info(self, code: str = FOOTBALL_DATA_WC_CODE) -> dict:
         return self._get(f"/competitions/{code}")
