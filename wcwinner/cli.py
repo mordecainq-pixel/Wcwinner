@@ -158,7 +158,7 @@ def cmd_betbuilder(args: argparse.Namespace) -> None:
 def cmd_refresh(args: argparse.Namespace) -> None:
     from wcwinner.pipeline import run_full_refresh
 
-    run_full_refresh()
+    run_full_refresh(source=args.source)
 
 
 def main() -> None:
@@ -195,6 +195,7 @@ def main() -> None:
     p_market.set_defaults(func=cmd_market)
 
     p_refresh = sub.add_parser("refresh", help="Re-download historical data and refit the model")
+    p_refresh.add_argument("--source", choices=["github", "kaggle"], default="github")
     p_refresh.set_defaults(func=cmd_refresh)
 
     p_card = sub.add_parser("card", help="Render a graphic prediction card to a PNG file")

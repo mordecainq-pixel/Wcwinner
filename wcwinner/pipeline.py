@@ -9,19 +9,31 @@ import pickle
 import time
 
 from wcwinner.config import ELO_RATINGS_PATH
-from wcwinner.data import kaggle_ingest
+from wcwinner.data import github_ingest, kaggle_ingest
 from wcwinner.features.elo import compute_elo_history
 from wcwinner.model import dixon_coles
 
 
-def run_full_refresh(verbose: bool = True) -> dict:
+def run_full_refresh(verbose: bool = True, source: str = "github") -> dict:
+    """`source="github"` (default) pulls straight from martj42/international_results
+    on GitHub -- no auth, no kagglehub, and raw.githubusercontent.com is
+    trusted by default in most sandboxed network policies. `source="kaggle"`
+    uses the original kagglehub-based path instead.
+    """
     def log(msg: str) -> None:
         if verbose:
             print(msg)
 
-    log("Refreshing Kaggle historical dataset...")
-    kaggle_ingest.refresh()
-    freshness = kaggle_ingest.data_freshness()
+    if source == "github":
+        log("Refreshing historical dataset from GitHub (martj42/international_results)...")
+        github_ingest.refresh()
+    elif source == "kaggle":
+        log("Refreshing historical dataset from Kaggle...")
+        kaggle_ingest.refresh()
+    else:
+        raise ValueError(f"Unknown source {source!r}; use 'github' or 'kaggle'")
+
+    freshness = kaggle_ingest.data_freshness()  # reads data/raw/, same schema regardless of source
     log(
         f"  {freshness['rows_played']} played matches, most recent completed "
         f"result: {freshness['max_played_date'].date()}"
