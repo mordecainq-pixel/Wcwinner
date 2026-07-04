@@ -3,20 +3,24 @@
 football-data.org's free tier gives us every already-determined fixture and
 leaves undetermined future slots as None/None placeholders — it does not
 expose the abstract bracket tree (which two slots feed a given future slot)
-for rounds that haven't been reached yet. That connectivity is inferred here
-using the standard "top half of the draw meets the mirrored bottom half"
-single-elimination convention (pair match i with match i + n/2 within a
-sorted-by-kickoff-time stage), then self-checked against whichever slots are
-already concretely known.
+for rounds that haven't been reached yet. For genuinely undetermined rounds,
+that connectivity is inferred using the "top half of the draw meets the
+mirrored bottom half" single-elimination convention (pair match i with match
+i + n/2 within a sorted-by-kickoff-time stage) via `infer_next_round_pairs`.
 
-As of the 2026 Round of 32, that self-check passes for the 3 Round-of-16
-pairings football-data.org has already resolved (Canada v Morocco, Paraguay
-v France, Brazil v Norway) — see `validate_connectivity`. Deeper rounds
-(quarterfinals onward) use the same rule by extension but are NOT yet
-independently verifiable against real data; treat far-round percentages as
-best-effort until the API confirms more of the tree, per the project's
-"flag what needs a live check" policy. `validate_connectivity` should be
-re-run after each round completes.
+That inference rule is a guess, not a guarantee, and it has already been
+proven wrong once in production: it matched the first 3 Round-of-16 pairings
+football-data.org resolved by coincidence, then failed 8/8 once the full
+Round of 16 was revealed (the real FIFA bracket tree doesn't follow this
+convention). Because of that, `simulate_tournament` always prefers the API's
+own confirmed pairing for a round the moment it's fully resolved
+(`_real_matches_for_stage`), and only falls back to the inference rule for
+rounds that are still genuinely undetermined. That makes the simulator
+self-correcting as the tournament progresses, but it also means percentages
+for rounds beyond the next undetermined one are still a guess until the API
+confirms them — run `scripts/check_bracket.py` / `validate_connectivity`
+after each round completes to see how many rounds out that guess currently
+extends, and don't trust further than that.
 """
 from __future__ import annotations
 
@@ -90,9 +94,20 @@ def validate_connectivity(matches: list[dict]) -> list[str]:
 
 
 def _known_winner(match: dict) -> str | None:
-    if match["status"] != "FINISHED" or match["home_score"] is None:
+    if match.get("status") != "FINISHED" or match.get("home_score") is None:
         return None
     return match["home_team"] if match["home_score"] > match["away_score"] else match["away_team"]
+
+
+def _real_matches_for_stage(matches: list[dict], stage: str) -> list[dict] | None:
+    """Ground-truth matches for `stage` if the API has fully resolved every
+    slot's teams (both feeder matches finished) -- None if any slot is still
+    an undetermined None/None placeholder.
+    """
+    real = _stage_matches(matches, stage)
+    if real and all(m["home_team"] and m["away_team"] for m in real):
+        return real
+    return None
 
 
 def simulate_tournament(
@@ -123,11 +138,11 @@ def simulate_tournament(
     for _ in range(n_iterations):
         current_round_matches = r32
 
-        for stage in STAGE_ORDER:
+        for stage_idx, stage in enumerate(STAGE_ORDER):
             reached_stage = ROUND_REACHED_BY_WINNING[stage]
             winners_by_id = {}
             for m in current_round_matches:
-                known = _known_winner(m) if stage == "LAST_32" else None
+                known = _known_winner(m)
                 winner = known if known is not None else sample_knockout_winner(
                     model, m["home_team"], m["away_team"], elo_ratings, rng
                 )
@@ -138,15 +153,26 @@ def simulate_tournament(
                 champion_counts[next(iter(winners_by_id.values()))] += 1
                 break
 
-            pairs = infer_next_round_pairs(current_round_matches)
-            current_round_matches = [
-                {
-                    "match_id": f"{stage}_next_{idx}",
-                    "home_team": winners_by_id[match_a["match_id"]],
-                    "away_team": winners_by_id[match_b["match_id"]],
-                }
-                for idx, (match_a, match_b) in enumerate(pairs)
-            ]
+            # Prefer the API's own confirmed pairing for the next round over our
+            # inferred bracket-tree guess, whenever it's already fully resolved
+            # (both feeder matches finished) -- the inference is only a
+            # fallback for rounds the API hasn't revealed yet.
+            next_stage = STAGE_ORDER[stage_idx + 1]
+            real_next = _real_matches_for_stage(matches, next_stage)
+            if real_next is not None:
+                current_round_matches = real_next
+            else:
+                pairs = infer_next_round_pairs(current_round_matches)
+                current_round_matches = [
+                    {
+                        "match_id": f"{stage}_next_{idx}",
+                        "home_team": winners_by_id[match_a["match_id"]],
+                        "away_team": winners_by_id[match_b["match_id"]],
+                        "status": None,
+                        "home_score": None,
+                    }
+                    for idx, (match_a, match_b) in enumerate(pairs)
+                ]
 
     stages = ["LAST_16", "QUARTER_FINALS", "SEMI_FINALS", "FINAL"]
     rows = []
