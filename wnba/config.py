@@ -40,10 +40,21 @@ ELO_HOME_ADVANTAGE = 70  # rating points; smaller relative effect than soccer's 
 
 # --- Margin/total model ---
 # Same spirit as wcwinner's DC_XI_TIME_DECAY/DC_LOOKBACK_YEARS: exponential
-# recency decay plus a hard lookback cutoff. NOT yet backtest-tuned the way
-# the soccer model's decay rate was - these are reasonable starting priors,
-# to be validated the same way before being trusted. See validate/backtest.py.
-MARGIN_XI_TIME_DECAY = 0.0015  # ~462-day half-life, a starting prior pending its own sweep
+# recency decay plus a hard lookback cutoff.
+#
+# Swept across MULTIPLE cutoffs (2022/2023/2024), not just one, after an
+# initial single-cutoff sweep suggested going as short as a 7-day half-life
+# (i.e. only last week's games really matter) - that turned out to be
+# overfitting to that one test window: a 7-day half-life was actually one of
+# the WORST choices at a different cutoff. A 20-day half-life scores nearly
+# as well on average and is far more consistent across periods (never the
+# worst at any tested cutoff). Confirms the real, sport-specific finding
+# though: WNBA rewards a MUCH shorter memory than soccer's ~3-year one -
+# rosters are 12-15 players and turn over hard year to year (trades, free
+# agency), so recent form is a much stronger signal here than career-long
+# history. Worth re-sweeping periodically as more seasons of data accumulate
+# and the estimate gets less noisy.
+MARGIN_XI_TIME_DECAY = 0.0347  # ~20-day half-life
 MARGIN_LOOKBACK_YEARS = 8
 MARGIN_L2_REG = 0.01
 MARGIN_SHRINKAGE_K = 15  # empirical-Bayes shrinkage strength toward Elo-implied rating
