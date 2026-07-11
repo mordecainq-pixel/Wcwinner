@@ -86,3 +86,5 @@ PLAYER_LOOKBACK_YEARS = 3
 PLAYER_BOX_MIN_REQUEST_INTERVAL = 1.0
 PLAYER_FORM_HALFLIFE_GAMES = 10  # exponential recency weight, in games not days
 PLAYER_MIN_GAMES_FOR_PROJECTION = 3
+PLAYER_OPPONENT_SHRINKAGE_K = 30  # games faced before an opponent's "stats allowed" factor is trusted fully
+PLAYER_SIM_COUNT = 10000
