@@ -31,6 +31,13 @@ from wnba.config import (
 STAT_COLUMNS = ["points", "rebounds", "assists", "fg3m", "steals", "blocks", "turnovers"]
 _DOUBLE_DOUBLE_COLUMNS = ["points", "rebounds", "assists", "steals", "blocks"]
 
+STAT_LABELS = {
+    "points": "Points", "rebounds": "Rebounds", "assists": "Assists",
+    "fg3m": "3-Pointers Made", "steals": "Steals", "blocks": "Blocks", "turnovers": "Turnovers",
+    "pra": "Pts+Reb+Ast", "pr": "Pts+Reb", "pa": "Pts+Ast", "ra": "Reb+Ast", "sb": "Stl+Blk",
+    "double_double": "Double-Double", "triple_double": "Triple-Double",
+}
+
 
 def compute_opponent_factors(player_box: pd.DataFrame, stat_cols: list[str] = STAT_COLUMNS) -> pd.DataFrame:
     """For each team, how much more/less than league-average each stat runs

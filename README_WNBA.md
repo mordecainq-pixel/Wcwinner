@@ -13,9 +13,17 @@ adopted hyperparameter without a backtest to back it up.
 | Team results + Elo + margin model refit | **Fully automated.** `wnba-predictor refresh` re-pulls every completed game from ESPN's public scoreboard API, recomputes Elo, and refits the margin/total model. |
 | Today's/upcoming schedule | **Fully automated.** `wnba-predictor today [--date YYYY-MM-DD]` pulls the live scoreboard, including in-progress and not-yet-started games. |
 | Player box scores + prop projections | **Automated, opt-in.** `wnba-predictor refresh --players` re-pulls per-player box scores (one HTTP request per game, so it's slow -- ~15 min for a 3-year window) and recomputes opponent "stats allowed" factors. Kept separate from the fast team refresh so a routine refresh doesn't take 15 minutes every time. |
-| Betting odds / market comparison | **Not wired up yet** for WNBA (task pending) -- props currently need a manually-supplied line (`--line`), same spirit as the injury field below. |
-| Injury/squad news | **Manual by design, off by default** -- not automated for the same reason as `wcwinner`: no free API reliably covers this. Not currently exposed as a model input for WNBA; factor it in yourself when picking props for an injury-affected player. |
+| Betting odds / market comparison | **Fully automated** via The Odds API, both game lines (h2h/spreads/totals) and player props (points/rebounds/assists/threes/PRA/PR/PA/RA/double-double/triple-double). See the cost note below before using this heavily -- player props are NOT cheap. |
+| Injury report | **Fully automated**, unlike `wcwinner`'s manual squad-strength field -- ESPN publishes a real, current, free league-wide injury report (status, injury type, a human-written comment) with no auth needed. `wnba-predictor injuries [--team X]`. Still not fed into the model's predictions quantitatively (see below). |
 | First Basket Scorer | **Not implemented.** Would need play-by-play parsing (ESPN's summary endpoint has a separate `plays` field) that hasn't been verified for data quality/coverage yet -- left out rather than shipped as an unvalidated guess. |
+
+**Why injuries aren't fed into the model's predictions despite being automated data:** knowing a player is "Out" is one thing; knowing exactly how many points/win-probability that's worth is another, and that needs its own backtested answer (does subtracting a specific player's recent production and redistributing minutes actually improve predictions?) before it should move a number. For now the report is surfaced for you to factor in yourself, same spirit as `wcwinner`'s manual multiplier -- the difference here is just that fetching the report itself no longer requires you to go find it.
+
+### Real cost lesson: The Odds API player-prop pricing
+
+The Odds API's free tier is 500 credits/month. Game lines (h2h/spreads/totals) are cheap -- one bulk request covers the whole upcoming slate. Player props are priced **per market x region, per event**, and testing this integration (a handful of full-slate lookups across ~12 prop markets x 2 regions) burned the account from ~500 credits to 2 in under an hour, confirmed via the API's own `x-requests-used` response header, not assumed.
+
+Because of this, `betbuilder.py` deliberately does NOT fetch player props for every upcoming game automatically -- `gather_match_options()` returns cheap game-line legs only; player props are fetched via a separate `add_player_prop_legs()` call, invoked only for games you've actually selected. The Streamlit app gates every odds-touching action behind an explicit button click, never on page load. Budget for real usage: roughly 15-30 credits per game's worth of props, so the free tier supports maybe 15-30 game-lookups a month, not a few hundred.
 
 ## Setup
 
@@ -23,9 +31,7 @@ adopted hyperparameter without a backtest to back it up.
 pip install -e .
 ```
 
-Reuses the same `.env` as `wcwinner/` (`ODDS_API_KEY`, confirmed to cover
-`basketball_wnba`, though it isn't wired into the CLI yet). No separate
-credentials needed for the ESPN data -- it's a public, unauthenticated API.
+Reuses the same `.env` as `wcwinner/` (`ODDS_API_KEY`, confirmed to cover `basketball_wnba` for both game lines and player props). No separate credentials needed for the ESPN data (results, player box scores, injuries) -- it's all public, unauthenticated.
 
 ```bash
 wnba-predictor refresh              # team data + Elo + margin model (~30s)
@@ -34,10 +40,15 @@ wnba-predictor refresh --players    # + player box scores + opponent factors (~1
 
 ## Usage
 
+**Website**: `streamlit run wnba/app.py` -- five tabs: Predict, Today's Games, Player Props, Injuries, and Bet Builder. Same visual system as `wcwinner`'s app (graphic prediction/prop/parlay cards, not plain tables). Only the Bet Builder tab touches the Odds API, and only after you click "Load today's games and odds."
+
 ```bash
 wnba-predictor predict "Las Vegas Aces" "New York Liberty" --home-advantage --spread -3.5 --total-line 165.5
 wnba-predictor today                                    # today's slate + model win probabilities
 wnba-predictor today --date 2026-07-10                  # any date
+wnba-predictor injuries --team "Atlanta Dream"           # live injury report
+wnba-predictor market --bookmakers fanduel,draftkings    # model vs. live game-line odds
+wnba-predictor betbuilder --bookmakers fanduel           # game + player-prop parlay builder
 wnba-predictor roster "Indiana Fever"                    # recently active players
 wnba-predictor props "Kelsey Mitchell" --opponent "New York Liberty" --stat points --line 17.5
 wnba-predictor backtest --cutoff 2024-07-01              # held-out validation
@@ -65,6 +76,20 @@ their actual `season.type`/`competition.type` fields.
 victory multiplier + a flat playoff K-bump, no draws (unlike soccer's
 version). No public API for WNBA Elo exists, so it's computed from scratch
 in `features/elo.py`.
+
+**Odds and player props: The Odds API** (`data/odds_client.py`). Confirmed
+live against real upcoming games: game lines and most player-prop markets
+have real bookmaker coverage (FanDuel, DraftKings, ESPN BET, and 7 others),
+but only once both the `us` and `us2` regions are queried together -- `us`
+alone silently misses FanDuel/DraftKings player props on this API, found by
+testing both rather than trusting one. See the cost note above; this is
+also where a real 401 was hit and diagnosed (turned out to be the account's
+monthly credits running out, not a code bug).
+
+**Injuries: ESPN's league-wide injury report**
+(`site.web.api.espn.com/.../injuries` -- note the different host from the
+rest of the ESPN integration, found by testing candidate endpoint patterns).
+Real per-player status, injury type, and a human-written comment, no auth.
 
 ## Model
 
@@ -147,6 +172,8 @@ wnba/
     espn_ingest.py         historical team results (one request/season)
     espn_player_ingest.py  historical player box scores (one request/game)
     espn_live.py           today's/any date's schedule, team rosters
+    espn_injuries.py       live league-wide injury report
+    odds_client.py         The Odds API: game lines + player props
   features/elo.py          margin-of-victory Elo
   model/
     margin_model.py        team margin/total model + calibration
@@ -154,7 +181,10 @@ wnba/
   validate/
     metrics.py, backtest.py       team-model log-loss/Brier vs. naive baseline
     player_backtest.py            player-projection PIT calibration check
+  betbuilder.py            game + player-prop parlay builder
+  visualize.py             graphic prediction/prop/parlay cards
   cli.py                   command-line interface
+  app.py                   Streamlit UI (streamlit run wnba/app.py)
   pipeline.py              the refresh-and-refit pipeline shared by the CLI
 tests/wnba/                pytest suite
 ```
@@ -163,5 +193,6 @@ tests/wnba/                pytest suite
 
 - Series-aware (best-of-N) playoff simulation -- currently no bracket/series
   Monte Carlo, unlike `wcwinner`'s tournament simulator.
-- Odds API wiring for live market comparison and Bet Builder reuse.
 - First Basket Scorer (needs play-by-play data verification first).
+- Injuries are surfaced but not fed into the model's predictions
+  quantitatively (see "Why injuries aren't fed into the model" above).
