@@ -10,6 +10,15 @@ narrow (actuals routinely fall outside the simulated range).
 Same spirit as the team model's calibration table
 (validate/backtest.py + config.py's CALIBRATION_A/B writeup), adapted for a
 continuous target instead of a binary win/loss outcome.
+
+Ties are randomized (`below + U(0,1) * tied`), not just `mean(sim <= actual)`:
+low-count stats like blocks have a lot of exact-zero mass in both the
+simulated draws and the actual result, and a naive "<=" comparison folds
+every tied zero into the "at or below" bucket, which drags mean PIT toward
+1.0 for reasons that have nothing to do with calibration quality. This was
+caught by running it on real backtest data -- raw mean PIT for blocks came
+back 0.77 (looked badly miscalibrated), and dropped to ~0.49 once ties were
+randomized, while points/rebounds (barely any exact ties) barely moved.
 """
 from __future__ import annotations
 
@@ -47,7 +56,9 @@ def pit_values(
         record = {"player_id": row.player_id, "date": row.date}
         for stat in stat_cols:
             actual = getattr(row, stat)
-            record[stat] = float((sim[stat] <= actual).mean())
+            below = (sim[stat] < actual).mean()
+            tied = (sim[stat] == actual).mean()
+            record[stat] = float(below + rng.uniform() * tied)
         records.append(record)
 
     return pd.DataFrame(records)
