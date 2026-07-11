@@ -28,6 +28,39 @@ import os  # noqa: E402
 ODDS_API_KEY = os.getenv("ODDS_API_KEY", "")
 ODDS_API_WNBA_SPORT_KEY = "basketball_wnba"
 
+# Confirmed live against real upcoming games: game lines (h2h/spreads/totals)
+# and most player-prop combos have real market data across FanDuel,
+# DraftKings, ESPN BET, and others once both the "us" and "us2" regions are
+# queried together (the default "us" region alone misses FanDuel/DraftKings
+# player props on this API). Steals/blocks/turnovers/steals+blocks came back
+# with no bookmaker offering them at all on the game checked -- kept in the
+# market-key map anyway since coverage can vary by matchup, but expect them
+# to often come back empty; the model projection still stands alone then.
+ODDS_API_REGIONS = "us,us2"
+ODDS_API_PLAYER_PROP_MARKETS = {
+    "points": "player_points",
+    "rebounds": "player_rebounds",
+    "assists": "player_assists",
+    "fg3m": "player_threes",
+    "steals": "player_steals",
+    "blocks": "player_blocks",
+    "turnovers": "player_turnovers",
+    "pra": "player_points_rebounds_assists",
+    "pr": "player_points_rebounds",
+    "pa": "player_points_assists",
+    "ra": "player_rebounds_assists",
+    "sb": "player_blocks_steals",
+}
+ODDS_API_DOUBLE_DOUBLE_MARKET = "player_double_double"
+ODDS_API_TRIPLE_DOUBLE_MARKET = "player_triple_double"
+
+# League-wide injury report (site.web.api.espn.com, NOT the site.api.espn.com
+# host used elsewhere -- confirmed live, no auth): real per-player status
+# (Out/Questionable/Day-To-Day), injury type, and a human-written comment,
+# refreshed continuously by ESPN. Unlike wcwinner's squad-news field, this
+# doesn't need to be manual -- it's real, current, and free.
+ESPN_INJURIES_URL = "https://site.web.api.espn.com/apis/site/v2/sports/basketball/wnba/injuries"
+
 # --- Elo rating ---
 # Basketball Elo conventionally uses a margin-of-victory multiplier rather
 # than a fixed per-competition K-factor (there's no "World Cup vs qualifier"
