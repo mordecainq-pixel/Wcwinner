@@ -30,6 +30,8 @@ from scipy.optimize import minimize
 from scipy.stats import norm
 
 from wnba.config import (
+    CALIBRATION_A,
+    CALIBRATION_B,
     DATA_PROCESSED_DIR,
     MARGIN_L2_REG,
     MARGIN_LOOKBACK_YEARS,
@@ -39,6 +41,17 @@ from wnba.config import (
 )
 
 MODEL_PATH = DATA_PROCESSED_DIR / "margin_model.pkl"
+
+
+def _apply_calibration(p: float, a: float = CALIBRATION_A, b: float = CALIBRATION_B) -> float:
+    """Platt scaling: pulls overconfident raw probabilities back toward 50%
+    (a<1) based on walk-forward validated evidence the raw model runs hot at
+    the high-confidence end - see config.py for the validation writeup.
+    """
+    p = np.clip(p, 1e-9, 1 - 1e-9)
+    raw_logit = np.log(p / (1 - p))
+    calibrated_logit = a * raw_logit + b
+    return float(1.0 / (1.0 + np.exp(-calibrated_logit)))
 
 
 @dataclass
@@ -75,16 +88,19 @@ class MarginModel:
 
     def win_probability(self, home_team: str, away_team: str, neutral: bool = True) -> float:
         mu, sd = self.margin_distribution(home_team, away_team, neutral)
-        return float(1.0 - norm.cdf(0.0, mu, sd))  # P(margin > 0); basketball has no draws
+        raw = float(1.0 - norm.cdf(0.0, mu, sd))  # P(margin > 0); basketball has no draws
+        return _apply_calibration(raw)
 
     def prob_over(self, home_team: str, away_team: str, line: float, neutral: bool = True) -> float:
         mu, sd = self.total_distribution(home_team, away_team, neutral)
-        return float(1.0 - norm.cdf(line, mu, sd))
+        raw = float(1.0 - norm.cdf(line, mu, sd))
+        return _apply_calibration(raw)
 
     def prob_home_covers_spread(self, home_team: str, away_team: str, point: float, neutral: bool = True) -> float:
         """P(home_margin + point > 0), e.g. point=-5.5 means home must win by 6+."""
         mu, sd = self.margin_distribution(home_team, away_team, neutral)
-        return float(1.0 - norm.cdf(-point, mu, sd))
+        raw = float(1.0 - norm.cdf(-point, mu, sd))
+        return _apply_calibration(raw)
 
 
 def _prepare_training_frame(results: pd.DataFrame, as_of: pd.Timestamp | None = None, xi: float = MARGIN_XI_TIME_DECAY) -> pd.DataFrame:

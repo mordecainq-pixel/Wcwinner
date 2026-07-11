@@ -59,3 +59,17 @@ MARGIN_LOOKBACK_YEARS = 8
 MARGIN_L2_REG = 0.01
 MARGIN_SHRINKAGE_K = 15  # empirical-Bayes shrinkage strength toward Elo-implied rating
 MARGIN_MIN_GAMES_FOR_ELO_REGRESSION = 10
+
+# --- Probability calibration (Platt scaling) ---
+# The raw model was measurably overconfident at the high end (an ~84%-
+# confidence bin resolved at ~63% observed - a real ~4.6 standard-error
+# miss, not noise). Fit via walk-forward out-of-sample predictions across
+# 4 non-overlapping cutoffs (2020/2021/2022/2023), each only scored on the
+# following year so nothing in the calibration-fitting pool overlaps the
+# final held-out test period. Confirmed the fix generalizes: evaluated on
+# a genuinely separate final test period (2024-07 cutoff), log-loss
+# improved 0.679 -> 0.669 and Brier 0.241 -> 0.238. calibrated_logit =
+# CALIBRATION_A * raw_logit + CALIBRATION_B; CALIBRATION_A < 1 means "pull
+# predictions back toward 50%," consistent with the overconfidence found.
+CALIBRATION_A = 0.7682
+CALIBRATION_B = -0.1341

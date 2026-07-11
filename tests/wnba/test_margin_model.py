@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 
+from wnba.config import CALIBRATION_A, CALIBRATION_B
 from wnba.model.margin_model import MarginModel, fit
 
 
@@ -34,13 +35,31 @@ def test_home_advantage_only_applies_when_not_neutral():
     assert abs(home_margin - neutral_margin - 3.0) < 1e-9
 
 
-def test_win_probability_is_fifty_fifty_for_even_matchup_at_neutral_site():
+def test_raw_margin_is_even_for_even_matchup_at_neutral_site():
+    """The uncalibrated margin distribution -- the model's actual scoring
+    logic -- must still be perfectly symmetric for a truly even matchup.
+    """
     model = MarginModel(
         attack={"A": 0.0, "B": 0.0}, defense={"A": 0.0, "B": 0.0},
         home_advantage=3.0, sigma=10.0, league_avg_points=82.0,
         game_counts={"A": 100, "B": 100},
     )
-    assert abs(model.win_probability("A", "B", neutral=True) - 0.5) < 1e-9
+    mu, _ = model.margin_distribution("A", "B", neutral=True)
+    assert abs(mu) < 1e-9
+
+
+def test_win_probability_for_even_matchup_matches_calibration_offset():
+    """Platt scaling has a nonzero intercept (CALIBRATION_B), so a truly even
+    matchup's calibrated win probability is NOT exactly 50% -- it's whatever
+    the fitted calibration curve maps a raw-50% (logit=0) input to.
+    """
+    model = MarginModel(
+        attack={"A": 0.0, "B": 0.0}, defense={"A": 0.0, "B": 0.0},
+        home_advantage=3.0, sigma=10.0, league_avg_points=82.0,
+        game_counts={"A": 100, "B": 100},
+    )
+    expected = 1.0 / (1.0 + np.exp(-(CALIBRATION_A * 0.0 + CALIBRATION_B)))
+    assert abs(model.win_probability("A", "B", neutral=True) - expected) < 1e-9
 
 
 def test_prob_home_covers_spread_matches_win_probability_at_zero_point():
