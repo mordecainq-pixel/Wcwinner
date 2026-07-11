@@ -48,6 +48,7 @@ def _parse_event(event: dict) -> dict | None:
 
     home, away = competitors["home"], competitors["away"]
     return {
+        "event_id": event.get("id"),
         "date": event["date"][:10],
         "home_team": home["team"]["displayName"],
         "away_team": away["team"]["displayName"],

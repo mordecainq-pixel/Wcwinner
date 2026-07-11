@@ -73,3 +73,16 @@ MARGIN_MIN_GAMES_FOR_ELO_REGRESSION = 10
 # predictions back toward 50%," consistent with the overconfidence found.
 CALIBRATION_A = 0.7682
 CALIBRATION_B = -0.1341
+
+# --- Player props ---
+# Player box scores come from ESPN's summary endpoint (one request per game,
+# confirmed live back to at least 2015 -- see data/espn_player_ingest.py).
+# That's far more requests than the one-per-season team backfill, so props
+# use a shorter lookback: rosters/roles change constantly (trades, injuries,
+# rotation changes), so a 3-year-old box score is weak signal for projecting
+# a player's line next week anyway -- same "short memory" finding as the
+# team model, just more extreme at the individual level.
+PLAYER_LOOKBACK_YEARS = 3
+PLAYER_BOX_MIN_REQUEST_INTERVAL = 1.0
+PLAYER_FORM_HALFLIFE_GAMES = 10  # exponential recency weight, in games not days
+PLAYER_MIN_GAMES_FOR_PROJECTION = 3
