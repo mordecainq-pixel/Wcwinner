@@ -11,12 +11,16 @@ import argparse
 
 import pandas as pd
 
+from wnba.betbuilder import add_player_prop_legs, combine_legs, find_best_combo, gather_match_options
 from wnba.data import espn_ingest
+from wnba.data.espn_injuries import fetch_injuries, team_injuries
 from wnba.data.espn_live import team_roster, todays_games
 from wnba.data.espn_player_ingest import load_player_boxscores
+from wnba.data.odds_client import game_market_probabilities
 from wnba.model import margin_model
 from wnba.model.player_model import (
     STAT_COLUMNS,
+    STAT_LABELS,
     prob_double_double,
     prob_over,
     prob_triple_double,
@@ -97,17 +101,123 @@ def cmd_props(args: argparse.Namespace) -> None:
     n_games = (player_box["player_id"] == player_id).sum()
 
     print(f"\n{resolved_name} vs {args.opponent} -- projections from last {n_games} games ({args.sims} simulations):\n")
-    combo_labels = {"pra": "PTS+REB+AST", "pr": "PTS+REB", "pa": "PTS+AST", "ra": "REB+AST", "sb": "STL+BLK"}
     for stat in STAT_COLUMNS:
-        print(f"  {stat:<10} mean {sim[stat].mean():5.1f}  median {sim[stat].median():5.1f}  std {sim[stat].std():4.1f}")
-    for stat, label in combo_labels.items():
-        print(f"  {label:<10} mean {sim[stat].mean():5.1f}  median {sim[stat].median():5.1f}  std {sim[stat].std():4.1f}")
+        label = STAT_LABELS[stat]
+        print(f"  {label:<16} mean {sim[stat].mean():5.1f}  median {sim[stat].median():5.1f}  std {sim[stat].std():4.1f}")
+    for stat in ("pra", "pr", "pa", "ra", "sb"):
+        label = STAT_LABELS[stat]
+        print(f"  {label:<16} mean {sim[stat].mean():5.1f}  median {sim[stat].median():5.1f}  std {sim[stat].std():4.1f}")
     print(f"\n  P(double-double): {prob_double_double(sim)*100:.1f}%")
     print(f"  P(triple-double): {prob_triple_double(sim)*100:.1f}%")
 
     if args.stat and args.line is not None:
         p = prob_over(sim, args.stat, args.line)
         print(f"\n  P({args.stat} over {args.line}): {p*100:.1f}%  (under: {(1-p)*100:.1f}%)")
+
+
+def cmd_market(args: argparse.Namespace) -> None:
+    model = margin_model.load()
+    df = game_market_probabilities(bookmakers=args.bookmakers)
+    if df.empty:
+        print("No upcoming games with market odds found.")
+        return
+
+    print("\nModel vs. market (The Odds API), upcoming WNBA games:\n")
+    rows = []
+    for row in df.itertuples(index=False):
+        try:
+            model_home_prob = model.win_probability(row.home_team, row.away_team, neutral=False)
+        except KeyError:
+            continue
+        rows.append({
+            "matchup": f"{row.away_team} @ {row.home_team}",
+            "model_home_%": model_home_prob * 100,
+            "market_home_%": row.market_home_prob * 100 if row.market_home_prob else None,
+            "edge_%": (model_home_prob - row.market_home_prob) * 100 if row.market_home_prob else None,
+        })
+    out = pd.DataFrame(rows)
+    print(out.to_string(index=False, float_format=lambda x: f"{x:.1f}"))
+
+
+def cmd_injuries(args: argparse.Namespace) -> None:
+    injuries = fetch_injuries()
+    if args.team:
+        injuries = team_injuries(args.team, injuries=injuries)
+    if injuries.empty:
+        print("No injuries reported" + (f" for {args.team}" if args.team else "") + ".")
+        return
+    print(f"\nWNBA injury report{' -- ' + args.team if args.team else ''}:\n")
+    for row in injuries.itertuples(index=False):
+        print(f"  [{row.team}] {row.player_name} ({row.position}) -- {row.status}: {row.comment}")
+
+
+def _print_betbuilder_result(result) -> None:
+    print(f"\n{len(result.legs)}-leg parlay:\n")
+    for i, leg in enumerate(result.legs, start=1):
+        print(f"  {i}. [{leg.market_type:9s}] {leg.pick_label:45s} {leg.odds:6.2f}x   {leg.reasoning}   ({leg.date})")
+    print(f"\nCombined odds: {result.combined_odds:.2f}x")
+    print(f"Model's estimated chance all legs hit: {result.combined_model_prob*100:.1f}%")
+    print(f"Stake ${result.stake:.2f} -> payout ${result.payout:.2f} (profit ${result.profit:.2f})")
+    print("\nNot a guarantee. For analysis/entertainment only.")
+
+
+def cmd_betbuilder(args: argparse.Namespace) -> None:
+    bookmakers = args.bookmakers
+    if bookmakers is None and not args.no_prompt_bookmakers:
+        raw = input(
+            "Sportsbook to use, e.g. fanduel, draftkings, espnbet "
+            "(blank = average across all available; comma-separate for a few): "
+        ).strip()
+        bookmakers = raw or None
+
+    matches = gather_match_options(bookmakers=bookmakers)
+    matches = [m for m in matches if m.legs]
+    if not matches:
+        print("No upcoming games found.")
+        return
+
+    print("\nAvailable games (game lines only shown here -- player props are fetched only for what you pick, since they're expensive on the free odds tier):\n")
+    for i, m in enumerate(matches, start=1):
+        b = m.best_leg
+        print(f"  {i:>2}. {m.home_team} vs {m.away_team} ({m.date}) -- best: {b.pick_label} {b.odds:.2f}x, {b.reasoning}")
+
+    if args.games:
+        chosen_idx = [int(x) for x in args.games.split(",")]
+    else:
+        raw = input("\nWhich games do you want in your parlay? (comma-separated numbers, or 'all'): ").strip()
+        chosen_idx = list(range(1, len(matches) + 1)) if raw.lower() == "all" else [int(x) for x in raw.split(",")]
+    chosen_matches = [matches[i - 1] for i in chosen_idx]
+
+    if not args.no_props:
+        try:
+            player_box = load_player_boxscores()
+            factors = load_opponent_factors()
+            chosen_matches = [add_player_prop_legs(m, player_box, factors, bookmakers=bookmakers) for m in chosen_matches]
+        except FileNotFoundError:
+            print("\n(No player box-score data yet -- run `refresh --players` for prop legs. Continuing with game lines only.)")
+
+    target = args.target
+    if target is None and not args.no_prompt_target:
+        raw = input("Target payout multiple, e.g. 5 for 5x (blank = just use the single best pick per game): ").strip()
+        target = float(raw) if raw else None
+
+    if target is not None:
+        selected = find_best_combo(chosen_matches, target)
+        actual = 1.0
+        for leg in selected:
+            actual *= leg.odds
+        if abs(actual - target) / target > 0.15:
+            print(f"\nHeads up: the closest combination available is {actual:.2f}x -- can't get near {target:.1f}x without adding more games or picking a longshot leg on purpose.")
+    else:
+        selected = [m.best_leg for m in chosen_matches]
+
+    stake = args.stake
+    if stake is None:
+        raw = input("Stake amount ($, blank = 10): ").strip()
+        stake = float(raw) if raw else 10.0
+
+    result = combine_legs(selected, stake=stake)
+    _print_betbuilder_result(result)
 
 
 def cmd_backtest(args: argparse.Namespace) -> None:
@@ -153,6 +263,24 @@ def main() -> None:
     p_props.add_argument("--line", type=float, default=None)
     p_props.add_argument("--sims", type=int, default=10000)
     p_props.set_defaults(func=cmd_props)
+
+    p_market = sub.add_parser("market", help="Compare model probabilities to live betting odds")
+    p_market.add_argument("--bookmakers", default=None, help="e.g. fanduel or fanduel,draftkings (default: average across all)")
+    p_market.set_defaults(func=cmd_market)
+
+    p_injuries = sub.add_parser("injuries", help="Show the live league-wide (or one team's) injury report")
+    p_injuries.add_argument("--team", default=None)
+    p_injuries.set_defaults(func=cmd_injuries)
+
+    p_bet = sub.add_parser("betbuilder", help="Pick games and (optionally) a target payout; game + player-prop legs")
+    p_bet.add_argument("--bookmakers", default=None, help="e.g. fanduel or fanduel,draftkings (default: average across all)")
+    p_bet.add_argument("--no-prompt-bookmakers", action="store_true")
+    p_bet.add_argument("--games", default=None, help="Comma-separated game numbers to include (skips the interactive prompt)")
+    p_bet.add_argument("--target", type=float, default=None)
+    p_bet.add_argument("--no-prompt-target", action="store_true")
+    p_bet.add_argument("--no-props", action="store_true", help="Game legs only, skip player props")
+    p_bet.add_argument("--stake", type=float, default=None)
+    p_bet.set_defaults(func=cmd_betbuilder)
 
     p_backtest = sub.add_parser("backtest", help="Backtest against held-out real games")
     p_backtest.add_argument("--cutoff", default="2024-07-01")

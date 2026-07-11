@@ -36,6 +36,21 @@ ODDS_API_WNBA_SPORT_KEY = "basketball_wnba"
 # with no bookmaker offering them at all on the game checked -- kept in the
 # market-key map anyway since coverage can vary by matchup, but expect them
 # to often come back empty; the model projection still stands alone then.
+#
+# COST WARNING, learned the expensive way: The Odds API's free tier is 500
+# credits/month, and per-EVENT player-prop requests are priced per
+# market x region, not per request. Testing this integration (a handful of
+# gather_match_options() calls across a 4-5 game slate, each pulling ~12
+# player-prop markets x 2 regions x 2 endpoints (over/under + milestones)
+# per event) burned the account from ~500 credits down to 2 in well under
+# an hour. Game lines (game_market_probabilities, one bulk call for the
+# whole slate) are cheap by comparison. Because of this, betbuilder.py
+# deliberately does NOT fetch player props for every upcoming game up
+# front -- only for games you've actually selected, same spirit as the
+# existing "search scoped to chosen matches, not the whole schedule"
+# design. Budget for real usage: at ~15-30 credits per game's worth of
+# props, the free tier supports maybe 15-30 game-lookups a month, not a
+# few hundred.
 ODDS_API_REGIONS = "us,us2"
 ODDS_API_PLAYER_PROP_MARKETS = {
     "points": "player_points",
