@@ -15,6 +15,7 @@ TTLs, never fetched automatically on page load or every widget rerun.
 """
 from __future__ import annotations
 
+import pandas as pd
 import streamlit as st
 
 from wnba.betbuilder import KNOWN_BOOKMAKERS, add_player_prop_legs, combine_legs, find_best_combo, gather_match_options
@@ -172,24 +173,49 @@ def render_props_tab(player_box, opponent_factors) -> None:
         return
 
     st.caption(f"Projections from {n_games} games (weighted toward recent form), 10,000 simulations.")
-    cols = st.columns(4)
-    for i, stat in enumerate(STAT_COLUMNS):
-        cols[i % 4].metric(STAT_LABELS[stat], f"{sim[stat].mean():.1f}")
-    cols2 = st.columns(4)
-    for i, stat in enumerate(("pra", "pr", "pa", "ra")):
-        cols2[i].metric(STAT_LABELS[stat], f"{sim[stat].mean():.1f}")
+
+    st.subheader(f"{player_name} -- probability board")
+    st.caption(
+        "Every stat at once, not just one bet slip. Lines default to just under the model's "
+        "own projected mean (a stand-in, not a real sportsbook line) -- edit any line to check "
+        "a real number and the probabilities below update immediately."
+    )
+    board_stats = STAT_COLUMNS + ["pra", "pr", "pa", "ra", "sb"]
+    line_df = pd.DataFrame({
+        "Stat": [STAT_LABELS[s] for s in board_stats],
+        "Projected": [round(float(sim[s].mean()), 1) for s in board_stats],
+        "Line": [round(float(sim[s].mean())) - 0.5 for s in board_stats],
+    })
+    edited_lines = st.data_editor(
+        line_df,
+        column_config={"Line": st.column_config.NumberColumn(step=0.5, help="Edit to check a real sportsbook line")},
+        disabled=["Stat", "Projected"],
+        hide_index=True, use_container_width=True, key="props_board_lines",
+    )
+
+    board_results = []
+    for stat, row in zip(board_stats, edited_lines.itertuples(index=False)):
+        p_over = prob_over(sim, stat, row.Line)
+        # ProgressColumn's `format` is applied to the raw cell value, not auto-scaled --
+        # store 0-100 (not 0-1) so "%.0f%%" actually prints e.g. "78%" instead of "1%".
+        board_results.append({"Stat": row.Stat, "Line": row.Line, "P(Over)": p_over * 100, "P(Under)": (1 - p_over) * 100})
+    st.dataframe(
+        pd.DataFrame(board_results),
+        column_config={
+            "P(Over)": st.column_config.ProgressColumn(format="%.0f%%", min_value=0, max_value=100),
+            "P(Under)": st.column_config.ProgressColumn(format="%.0f%%", min_value=0, max_value=100),
+        },
+        hide_index=True, use_container_width=True,
+    )
 
     c1, c2 = st.columns(2)
-    c1.metric("P(double-double)", f"{prob_double_double(sim)*100:.0f}%")
-    c2.metric("P(triple-double)", f"{prob_triple_double(sim)*100:.0f}%")
+    c1.metric("P(Double-Double)", f"{prob_double_double(sim)*100:.0f}%")
+    c2.metric("P(Triple-Double)", f"{prob_triple_double(sim)*100:.0f}%")
 
-    st.subheader("Check a specific line")
-    stat_choice = st.selectbox("Stat", STAT_COLUMNS + ["pra", "pr", "pa", "ra", "sb"], format_func=lambda s: STAT_LABELS[s])
-    line = st.number_input("Line", value=round(float(sim[stat_choice].mean()) - 0.5, 1), step=0.5)
-    p_over = prob_over(sim, stat_choice, line)
-    st.write(f"**P({STAT_LABELS[stat_choice]} over {line}):** {p_over*100:.1f}%  (under: {(1-p_over)*100:.1f}%)")
-
-    fig = render_prop_card(player_name, opponent, sim, stat_choice, line=line)
+    st.subheader("Prop card")
+    card_stat = st.selectbox("Stat to feature on the card", board_stats, format_func=lambda s: STAT_LABELS[s], key="props_card_stat")
+    card_line = round(float(sim[card_stat].mean())) - 0.5
+    fig = render_prop_card(player_name, opponent, sim, card_stat, line=card_line)
     st.pyplot(fig)
 
 
