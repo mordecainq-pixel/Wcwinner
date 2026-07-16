@@ -1,0 +1,10 @@
+# Shared theme for both apps (wcwinner/app.py and wnba/app.py) -- matches
+# the color palette already used in visualize.py's rendered cards, so the
+# website and the graphic cards read as one consistent system.
+[theme]
+base = "light"
+primaryColor = "#3c8c40"
+backgroundColor = "#f2efe9"
+secondaryBackgroundColor = "#e9e5db"
+textColor = "#2b2b2b"
+font = "sans serif"

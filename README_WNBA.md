@@ -19,6 +19,32 @@ adopted hyperparameter without a backtest to back it up.
 
 **Why injuries aren't fed into the model's predictions despite being automated data:** knowing a player is "Out" is one thing; knowing exactly how many points/win-probability that's worth is another, and that needs its own backtested answer (does subtracting a specific player's recent production and redistributing minutes actually improve predictions?) before it should move a number. For now the report is surfaced for you to factor in yourself, same spirit as `wcwinner`'s manual multiplier -- the difference here is just that fetching the report itself no longer requires you to go find it.
 
+## Public deployment (free, no server to run)
+
+**Hosting: Streamlit Community Cloud.** Free for a public GitHub repo, auto-redeploys on every push. Connect it to this repo, branch `claude/hello-fpti9r`, main file `wnba/app.py`.
+
+**Daily auto-update: `.github/workflows/wnba_daily_refresh.yml`.** A GitHub Actions cron job (free, unlimited minutes on public repos) runs the same refresh pipeline as `wnba-predictor refresh --players` once a day and commits the updated data straight back to the repo -- that push is what triggers Streamlit Cloud's redeploy. No server, no cost, on either side. It also listens for `workflow_dispatch`, so the admin panel's "Refresh data now" button can kick it off on demand between scheduled runs.
+
+**The public site does not include Bet Builder or live market comparison.** Both need The Odds API, whose free tier is a single shared 500-credit/month pool -- fine for one person testing locally, not something that survives real public traffic (see the cost note in `betbuilder.py`/`config.py`). Predictions and player-prop projections need no odds data at all, so they stay fully free and uncapped for everyone.
+
+**Admin panel** (visible only to you): data freshness, a manual refresh trigger, and -- since you're already identified as admin at that point -- the Bet Builder tab too, so you don't lose it. Two ways in:
+- **Your IP address**, matched against `ADMIN_ALLOWED_IPS`. Works automatically when you visit the *deployed* site from your own network. It will **not** auto-unlock a local `streamlit run` -- `localhost` connections show up as `127.0.0.1`, not your real IP, no matter whose machine it is.
+- **A password** (`ADMIN_PASSWORD`), entered via the "Admin login" expander at the bottom of the page. This is what unlocks it for local runs, and doubles as a fallback if IP detection ever misbehaves on the host. Treat it like a real credential -- anyone with it gets admin access from anywhere.
+
+Secrets to set (Streamlit Cloud: app dashboard -> Settings -> Secrets, TOML format; locally: your `.env`, see `.env.example`):
+
+```toml
+ADMIN_PASSWORD = "pick-something-real"
+ADMIN_ALLOWED_IPS = "162.154.102.159"
+ADMIN_GITHUB_TOKEN = "ghp_..."   # only needed for the admin panel's manual refresh button
+```
+
+`ADMIN_GITHUB_TOKEN` is a GitHub personal access token with `repo` (classic) or `actions:write` (fine-grained) scope -- create one under GitHub Settings -> Developer settings -> Personal access tokens. The daily cron job itself doesn't need this or any other secret; it authenticates with the token GitHub Actions provides automatically.
+
+If you ever want Bet Builder to show live odds *on the deployed site* (not just locally) for your own admin use, add `ODDS_API_KEY` as a Streamlit Cloud secret too -- optional, and it draws from the same shared quota as your local usage.
+
+**"Data Refresh In Progress"**: while the daily job (or a manually-triggered one) is running, regular visitors see a professional status message with a live ETA countdown instead of stale or partially-written data -- coordinated via a small `refresh_status.json` committed alongside the data itself, since the site and the refresh job run on completely different machines with no other way to share state. You (as admin) can see and use the site normally during a refresh; everyone else gets the notice until it flips back to idle.
+
 ### Real cost lesson: The Odds API player-prop pricing
 
 The Odds API's free tier is 500 credits/month. Game lines (h2h/spreads/totals) are cheap -- one bulk request covers the whole upcoming slate. Player props are priced **per market x region, per event**, and testing this integration (a handful of full-slate lookups across ~12 prop markets x 2 regions) burned the account from ~500 credits to 2 in under an hour, confirmed via the API's own `x-requests-used` response header, not assumed.
@@ -190,6 +216,11 @@ wnba/
   cli.py                   command-line interface
   app.py                   Streamlit UI (streamlit run wnba/app.py)
   pipeline.py              the refresh-and-refit pipeline shared by the CLI
+  admin.py                 IP/password admin gate + refresh-trigger for the public site
+  status.py                refresh_status.json read/write (site <-> cron job coordination)
+.github/workflows/
+  wnba_daily_refresh.yml   daily cron: refresh data, commit it back (drives redeploys)
+.streamlit/config.toml     shared theme (wcwinner + wnba apps)
 tests/wnba/                pytest suite
 ```
 

@@ -1,0 +1,52 @@
+name: WNBA daily data refresh
+
+# Runs the same refresh pipeline used locally, then commits the updated
+# data files back to the repo. Streamlit Community Cloud auto-redeploys on
+# every push to the deployed branch, so this is the entire "keep the public
+# site current" mechanism -- no server to maintain, no cost (GitHub Actions
+# is free/unlimited-minutes for public repos on standard runners).
+#
+# `workflow_dispatch` lets the admin panel (or you, manually from the
+# Actions tab) trigger an out-of-schedule refresh on demand.
+on:
+  schedule:
+    - cron: "0 9 * * *"  # 09:00 UTC daily -- well after the previous night's games finish
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      # Hardcoded to the branch this site actually deploys from. If you
+      # later merge this work into main and point Streamlit Cloud at main
+      # instead, update this ref (and the admin panel's target branch) to
+      # match -- otherwise this job keeps refreshing a branch nothing reads.
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/hello-fpti9r
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -e .
+
+      - name: Run full refresh (team + player data)
+        run: |
+          python -c "
+          from wnba.pipeline import run_full_refresh
+          run_full_refresh(refresh_players=True)
+          "
+
+      - name: Commit and push updated data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/wnba_raw/ data/wnba_processed/
+          git diff --cached --quiet && echo "No data changes, nothing to commit." && exit 0
+          git commit -m "Automated WNBA data refresh $(date -u +%Y-%m-%d)"
+          git push

@@ -136,3 +136,22 @@ PLAYER_FORM_HALFLIFE_GAMES = 10  # exponential recency weight, in games not days
 PLAYER_MIN_GAMES_FOR_PROJECTION = 3
 PLAYER_OPPONENT_SHRINKAGE_K = 30  # games faced before an opponent's "stats allowed" factor is trusted fully
 PLAYER_SIM_COUNT = 10000
+
+# --- Public deployment / admin panel ---
+# The public site is meant to run unattended (GitHub Actions refreshes data
+# daily and commits it back; Streamlit Community Cloud redeploys on every
+# push). The admin panel is a convenience layer on top of that, not a
+# security boundary -- see admin.py's docstring for why IP alone isn't
+# trustworthy and a password fallback exists.
+REFRESH_STATUS_PATH = DATA_PROCESSED_DIR / "refresh_status.json"
+ADMIN_ALLOWED_IPS = [ip.strip() for ip in os.getenv("ADMIN_ALLOWED_IPS", "").split(",") if ip.strip()]
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
+
+# For the admin panel's "refresh now" button, which dispatches the same
+# workflow the daily cron uses (see .github/workflows/wnba_daily_refresh.yml)
+# via GitHub's API rather than running the (slow, ESPN-rate-limited) refresh
+# inside the web app's own process.
+ADMIN_GITHUB_TOKEN = os.getenv("ADMIN_GITHUB_TOKEN", "")
+GITHUB_REPO = os.getenv("GITHUB_REPO", "mordecainq-pixel/wcwinner")
+GITHUB_WORKFLOW_FILE = "wnba_daily_refresh.yml"
+GITHUB_WORKFLOW_REF = "claude/hello-fpti9r"  # keep in sync with the workflow's checkout ref above

@@ -18,6 +18,7 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
+from wnba import admin, status as refresh_status
 from wnba.betbuilder import KNOWN_BOOKMAKERS, add_player_prop_legs, combine_legs, find_best_combo, gather_match_options
 from wnba.data.espn_injuries import fetch_injuries
 from wnba.data.espn_live import team_roster, todays_games
@@ -66,9 +67,15 @@ def _cached_game_matches(_model, bookmakers):
 
 
 def main() -> None:
-    st.set_page_config(page_title="WNBA Predictor", layout="centered")
+    st.set_page_config(page_title="WNBA Predictor", layout="centered", page_icon="🏀")
     st.title("WNBA Match & Player Prop Predictor")
     st.caption("Margin/total model, self-calculated Elo, bootstrap-simulated player props.")
+
+    is_admin = admin.is_admin()
+    current_status = refresh_status.read_status()
+    if current_status["state"] == "updating" and not is_admin:
+        render_updating_banner(current_status)
+        return
 
     try:
         model = load_model()
@@ -78,19 +85,97 @@ def main() -> None:
 
     player_box, opponent_factors = load_props_data()
 
-    tab_predict, tab_today, tab_props, tab_injuries, tab_bet = st.tabs(
-        ["Predict", "Today's Games", "Player Props", "Injuries", "Bet Builder"]
-    )
-    with tab_predict:
+    if current_status["state"] == "updating":
+        st.info("Data refresh in progress (visible to you as admin; hidden from other visitors until it finishes). See below for details.")
+
+    tabs = ["Predict", "Today's Games", "Player Props", "Injuries"]
+    if is_admin:
+        tabs += ["Bet Builder", "Admin"]
+    rendered = st.tabs(tabs)
+
+    with rendered[0]:
         render_predict_tab(model)
-    with tab_today:
+    with rendered[1]:
         render_today_tab(model)
-    with tab_props:
+    with rendered[2]:
         render_props_tab(player_box, opponent_factors)
-    with tab_injuries:
+    with rendered[3]:
         render_injuries_tab()
-    with tab_bet:
-        render_bet_builder_tab(model, player_box, opponent_factors)
+    if is_admin:
+        with rendered[4]:
+            render_bet_builder_tab(model, player_box, opponent_factors)
+        with rendered[5]:
+            render_admin_tab(current_status)
+
+    if not is_admin:
+        admin.render_admin_login()
+
+    finished = current_status.get("finished_at")
+    if finished:
+        st.caption(f"Data last updated: {finished[:16].replace('T', ' ')} UTC")
+
+
+def render_updating_banner(current_status: dict) -> None:
+    eta = current_status.get("eta_minutes") or 25
+    elapsed = refresh_status.minutes_since_started(current_status)
+    remaining = max(1, round(eta - elapsed)) if elapsed is not None else eta
+
+    st.info(
+        f"""
+**Data Refresh In Progress**
+
+This site's statistics and projections are currently being updated with the latest games and results.
+This process typically takes {eta} minutes; an estimated **{remaining} minutes** remain.
+
+Please check back shortly -- thank you for your patience.
+"""
+    )
+    admin.render_admin_login()
+
+
+def render_admin_tab(current_status: dict) -> None:
+    st.subheader("Data status")
+    state = current_status["state"]
+    if state == "updating":
+        elapsed = refresh_status.minutes_since_started(current_status)
+        st.warning(f"A refresh is currently running (started {elapsed:.0f} min ago, ETA {current_status.get('eta_minutes')} min).")
+    else:
+        finished = current_status.get("finished_at")
+        st.success(f"Idle. Last refresh finished: {finished or 'unknown'}.")
+
+    try:
+        results_freshness = espn_ingest_freshness()
+        st.write(f"**Team results:** {results_freshness['rows_total']} games, most recent {results_freshness['max_date'].date()}")
+    except FileNotFoundError:
+        st.write("**Team results:** not loaded yet.")
+
+    player_box, _ = load_props_data()
+    if player_box is not None:
+        st.write(f"**Player box scores:** {len(player_box)} rows, most recent {player_box['date'].max().date()}")
+    else:
+        st.write("**Player box scores:** not loaded yet.")
+
+    st.divider()
+    st.subheader("Trigger a data refresh")
+    st.caption(
+        "Runs the same GitHub Actions job as the daily automatic refresh (not run inside this app "
+        "directly -- it's slow and rate-limited against ESPN). Takes ~15-25 minutes; this site "
+        "redeploys automatically once it's done."
+    )
+    if st.button("Refresh data now", type="primary"):
+        ok, message = admin.trigger_refresh_workflow()
+        (st.success if ok else st.error)(message)
+
+    st.divider()
+    st.subheader("Session")
+    if st.button("Log out of admin"):
+        st.session_state["admin_unlocked"] = False
+        st.rerun()
+
+
+def espn_ingest_freshness():
+    from wnba.data import espn_ingest
+    return espn_ingest.data_freshness()
 
 
 def render_predict_tab(model) -> None:
