@@ -33,14 +33,18 @@ pip install -e .
 
 Reuses the same `.env` as `wcwinner/` (`ODDS_API_KEY`, confirmed to cover `basketball_wnba` for both game lines and player props). No separate credentials needed for the ESPN data (results, player box scores, injuries) -- it's all public, unauthenticated.
 
+**Data is committed to the repo** (`data/wnba_raw/`, `data/wnba_processed/`, a few MB total), unlike `wcwinner/`'s data directories -- specifically so a fresh `git clone`/`git pull` has working player props immediately, without needing the ~15-minute player backfill just to use the app. Only rerun the commands below when you actually want fresher data (new games played), not as a setup requirement:
+
 ```bash
 wnba-predictor refresh              # team data + Elo + margin model (~30s)
-wnba-predictor refresh --players    # + player box scores + opponent factors (~15min)
+wnba-predictor refresh --players    # + player box scores + opponent factors (~15min, only needed for fresh data)
 ```
 
 ## Usage
 
 **Website**: `streamlit run wnba/app.py` -- five tabs: Predict, Today's Games, Player Props, Injuries, and Bet Builder. Same visual system as `wcwinner`'s app (graphic prediction/prop/parlay cards, not plain tables). Only the Bet Builder tab touches the Odds API, and only after you click "Load today's games and odds."
+
+Player Props pick a real matchup (Team A vs. Team B, not one team plus a name typed manually) and a probability board covering every stat/combo for the chosen player at once, not one stat/line at a time. The player dropdown pools both rosters together -- pick either team's player from one list, and the model automatically treats the other team as the opponent.
 
 ```bash
 wnba-predictor predict "Las Vegas Aces" "New York Liberty" --home-advantage --spread -3.5 --total-line 165.5

@@ -154,16 +154,31 @@ def render_props_tab(player_box, opponent_factors) -> None:
         return
 
     teams = sorted(player_box["team"].unique())
-    team = st.selectbox("Team", teams, key="props_team")
-    roster = team_roster(team, player_box, n_recent_games=8)
-    if roster.empty:
-        st.info("No recent players found for this team.")
+    col1, col2 = st.columns(2)
+    with col1:
+        team_a = st.selectbox("Team A", teams, index=0, key="props_team_a")
+    with col2:
+        team_b = st.selectbox("Team B", teams, index=min(1, len(teams) - 1), key="props_team_b")
+
+    if team_a == team_b:
+        st.warning("Pick two different teams.")
         return
 
-    player_name = st.selectbox("Player", roster["player_name"].tolist())
-    opponent = st.selectbox("Opponent", [t for t in teams if t != team])
+    roster_a = team_roster(team_a, player_box, n_recent_games=8)
+    roster_a["team_label"] = team_a
+    roster_b = team_roster(team_b, player_box, n_recent_games=8)
+    roster_b["team_label"] = team_b
+    combined_roster = pd.concat([roster_a, roster_b], ignore_index=True)
+    if combined_roster.empty:
+        st.info("No recent players found for either team.")
+        return
 
-    player_id = roster[roster["player_name"] == player_name].iloc[0]["player_id"]
+    player_choices = [f"{row.player_name} ({row.team_label})" for row in combined_roster.itertuples(index=False)]
+    picked = st.selectbox("Player -- from either team", player_choices, key="props_player")
+    chosen = combined_roster.iloc[player_choices.index(picked)]
+    player_name, player_id, player_team = chosen["player_name"], chosen["player_id"], chosen["team_label"]
+    opponent = team_b if player_team == team_a else team_a
+
     n_games = int((player_box["player_id"] == player_id).sum())
 
     try:

@@ -9,8 +9,6 @@ venv/
 .ipynb_checkpoints/
 data/raw/
 data/processed/
-data/wnba_raw/
-data/wnba_processed/
 *.db
 *.sqlite3
 .DS_Store
