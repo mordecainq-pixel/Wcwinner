@@ -107,9 +107,6 @@ def main() -> None:
         with rendered[5]:
             render_admin_tab(current_status)
 
-    if not is_admin:
-        admin.render_admin_login()
-
     finished = current_status.get("finished_at")
     if finished:
         st.caption(f"Data last updated: {finished[:16].replace('T', ' ')} UTC")
@@ -130,7 +127,6 @@ This process typically takes {eta} minutes; an estimated **{remaining} minutes**
 Please check back shortly -- thank you for your patience.
 """
     )
-    admin.render_admin_login()
 
 
 def render_admin_tab(current_status: dict) -> None:
@@ -165,12 +161,6 @@ def render_admin_tab(current_status: dict) -> None:
     if st.button("Refresh data now", type="primary"):
         ok, message = admin.trigger_refresh_workflow()
         (st.success if ok else st.error)(message)
-
-    st.divider()
-    st.subheader("Session")
-    if st.button("Log out of admin"):
-        st.session_state["admin_unlocked"] = False
-        st.rerun()
 
 
 def espn_ingest_freshness():

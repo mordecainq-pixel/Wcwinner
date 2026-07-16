@@ -1,23 +1,21 @@
 """Admin gate for the public deployment: unlocks a settings panel and the
 Bet Builder tab (kept off the public site -- see betbuilder.py's cost note)
-for whoever configured this deployment.
+for whoever's IP is on the allowlist.
 
-IMPORTANT: IP matching is a convenience, not real security. `st.context.
-ip_address` reflects whatever address reached the app -- correct for a
-visitor coming in over the public internet to a hosted deployment, but on a
-LOCAL run (`streamlit run wnba/app.py` on your own machine) it's
-`127.0.0.1`, not your public IP, so IP matching alone would never unlock
-locally. A password fallback (`ADMIN_PASSWORD`, set via `.env` locally or
-the host's secrets manager) covers that case and works everywhere. Treat
-the password as a real credential -- anyone who has it gets admin access
-regardless of IP.
+IP-only, by design choice: no password fallback. That means a local
+`streamlit run wnba/app.py` will never show as admin -- `st.context.
+ip_address` is `127.0.0.1` for any local connection, not your public IP --
+and if your IP ever changes (ISP reassignment, different network), you'll
+need to update ADMIN_ALLOWED_IPS on the deployment before the admin panel
+unlocks again. That tradeoff was chosen deliberately over keeping a
+password around as a second way in.
 """
 from __future__ import annotations
 
 import requests
 import streamlit as st
 
-from wnba.config import ADMIN_ALLOWED_IPS, ADMIN_GITHUB_TOKEN, ADMIN_PASSWORD, GITHUB_REPO, GITHUB_WORKFLOW_FILE, GITHUB_WORKFLOW_REF
+from wnba.config import ADMIN_ALLOWED_IPS, ADMIN_GITHUB_TOKEN, GITHUB_REPO, GITHUB_WORKFLOW_FILE, GITHUB_WORKFLOW_REF
 
 
 def _visitor_ip() -> str | None:
@@ -28,34 +26,8 @@ def _visitor_ip() -> str | None:
 
 
 def is_admin() -> bool:
-    if st.session_state.get("admin_unlocked"):
-        return True
-
     ip = _visitor_ip()
-    if ip and ip in ADMIN_ALLOWED_IPS:
-        st.session_state["admin_unlocked"] = True
-        return True
-
-    return False
-
-
-def render_admin_login() -> None:
-    """A small, unobtrusive password entry for admin access when IP
-    matching doesn't apply (e.g. running locally). Call this once, low on
-    the page -- it does nothing visible for non-admins who don't open it.
-    """
-    if is_admin():
-        return
-    with st.expander("Admin login"):
-        if not ADMIN_PASSWORD:
-            st.caption("No ADMIN_PASSWORD configured for this deployment.")
-            return
-        entered = st.text_input("Password", type="password", key="admin_password_input")
-        if entered and entered == ADMIN_PASSWORD:
-            st.session_state["admin_unlocked"] = True
-            st.rerun()
-        elif entered:
-            st.error("Incorrect password.")
+    return bool(ip and ip in ADMIN_ALLOWED_IPS)
 
 
 def trigger_refresh_workflow() -> tuple[bool, str]:

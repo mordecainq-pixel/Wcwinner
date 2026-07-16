@@ -140,12 +140,11 @@ PLAYER_SIM_COUNT = 10000
 # --- Public deployment / admin panel ---
 # The public site is meant to run unattended (GitHub Actions refreshes data
 # daily and commits it back; Streamlit Community Cloud redeploys on every
-# push). The admin panel is a convenience layer on top of that, not a
-# security boundary -- see admin.py's docstring for why IP alone isn't
-# trustworthy and a password fallback exists.
+# push). The admin panel unlocks by IP only (no password) -- see admin.py's
+# docstring for the tradeoff that comes with that (won't unlock locally,
+# breaks if your IP changes until ADMIN_ALLOWED_IPS is updated).
 REFRESH_STATUS_PATH = DATA_PROCESSED_DIR / "refresh_status.json"
 ADMIN_ALLOWED_IPS = [ip.strip() for ip in os.getenv("ADMIN_ALLOWED_IPS", "").split(",") if ip.strip()]
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
 
 # For the admin panel's "refresh now" button, which dispatches the same
 # workflow the daily cron uses (see .github/workflows/wnba_daily_refresh.yml)

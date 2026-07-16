@@ -27,14 +27,11 @@ adopted hyperparameter without a backtest to back it up.
 
 **The public site does not include Bet Builder or live market comparison.** Both need The Odds API, whose free tier is a single shared 500-credit/month pool -- fine for one person testing locally, not something that survives real public traffic (see the cost note in `betbuilder.py`/`config.py`). Predictions and player-prop projections need no odds data at all, so they stay fully free and uncapped for everyone.
 
-**Admin panel** (visible only to you): data freshness, a manual refresh trigger, and -- since you're already identified as admin at that point -- the Bet Builder tab too, so you don't lose it. Two ways in:
-- **Your IP address**, matched against `ADMIN_ALLOWED_IPS`. Works automatically when you visit the *deployed* site from your own network. It will **not** auto-unlock a local `streamlit run` -- `localhost` connections show up as `127.0.0.1`, not your real IP, no matter whose machine it is.
-- **A password** (`ADMIN_PASSWORD`), entered via the "Admin login" expander at the bottom of the page. This is what unlocks it for local runs, and doubles as a fallback if IP detection ever misbehaves on the host. Treat it like a real credential -- anyone with it gets admin access from anywhere.
+**Admin panel** (visible only to you): data freshness, a manual refresh trigger, and -- since you're already identified as admin at that point -- the Bet Builder tab too, so you don't lose it. Unlocked by **IP address only**, matched against `ADMIN_ALLOWED_IPS` -- no password. Works automatically when you visit the *deployed* site from your own network. Two things worth knowing about that choice: it will **not** unlock a local `streamlit run` (`localhost` connections show up as `127.0.0.1`, not your real IP), and if your IP ever changes (ISP reassignment, different network) you'll need to update `ADMIN_ALLOWED_IPS` before admin access works again.
 
 Secrets to set (Streamlit Cloud: app dashboard -> Settings -> Secrets, TOML format; locally: your `.env`, see `.env.example`):
 
 ```toml
-ADMIN_PASSWORD = "pick-something-real"
 ADMIN_ALLOWED_IPS = "162.154.102.159"
 ADMIN_GITHUB_TOKEN = "ghp_..."   # only needed for the admin panel's manual refresh button
 ```
