@@ -94,6 +94,16 @@ def render_bouncing_ball() -> None:
     a `window.__ballStarted` guard stops Streamlit's rerun-on-every-
     interaction behavior from spawning a fresh ball (and resetting its
     position) on every click elsewhere on the page.
+
+    Tried a negative z-index first to make it pass literally behind
+    widgets/text -- looked broken in practice: Streamlit's centered layout
+    paints an opaque background across the whole content column (not just
+    under individual widgets), so the ball vanished for nearly its entire
+    path, only flickering into view in the empty margins on either side.
+    50% opacity is the practical version of "doesn't block anything": it
+    stays visible everywhere (still fun to watch) but never fully obscures
+    text/widgets it crosses -- pointer-events:none already meant it wasn't
+    blocking clicks either way.
     """
     components.html(
         """
@@ -116,7 +126,7 @@ def render_bouncing_ball() -> None:
             function start() {
                 var ball = document.createElement('div');
                 ball.style.cssText = 'position:fixed; width:46px; height:46px; font-size:38px; ' +
-                    'line-height:46px; text-align:center; user-select:none;';
+                    'line-height:46px; text-align:center; user-select:none; opacity:0.5;';
                 ball.textContent = '🏀';
                 document.body.appendChild(ball);
 
@@ -152,9 +162,10 @@ def render_bouncing_ball() -> None:
 
 def main() -> None:
     st.set_page_config(page_title="WNBA Predictor", layout="centered", page_icon="🏀")
-    render_bouncing_ball()
     st.title("WNBA Match & Player Prop Predictor")
     st.caption("Margin/total model, self-calculated Elo, bootstrap-simulated player props.")
+    if st.toggle("🏀 Bouncing basketball", value=True, key="ball_toggle"):
+        render_bouncing_ball()
 
     is_admin = admin.is_admin()
     current_status = refresh_status.read_status()

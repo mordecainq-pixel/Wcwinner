@@ -9,6 +9,21 @@ and if your IP ever changes (ISP reassignment, different network), you'll
 need to update ADMIN_ALLOWED_IPS on the deployment before the admin panel
 unlocks again. That tradeoff was chosen deliberately over keeping a
 password around as a second way in.
+
+CONFIRMED LIVE: on Streamlit Community Cloud, `st.context.ip_address`
+returns `::ffff:127.0.0.1` (IPv6 notation for localhost) for every
+visitor, not their real address -- the app sits behind an internal reverse
+proxy, and the raw connection Streamlit sees is that proxy's own loopback
+connection, not the original client's. So `ip_address` alone is useless for
+this deployment. The fix is the standard one for exactly this situation:
+reverse proxies conventionally record the real client IP in the
+`X-Forwarded-For` header (the first address if there's a chain of proxies),
+so that's checked first, with `ip_address` only as a fallback for hosts
+that don't sit behind a proxy at all (e.g. if this ever runs somewhere
+else). Not verified against Streamlit Cloud's exact header behavior from
+here (no way to reach the real deployment from this environment) -- if
+admin access still doesn't unlock after this, the header may need a
+different name or index, not necessarily "first entry."
 """
 from __future__ import annotations
 
@@ -20,6 +35,9 @@ from wnba.config import ADMIN_ALLOWED_IPS, ADMIN_GITHUB_TOKEN, GITHUB_REPO, GITH
 
 def _visitor_ip() -> str | None:
     try:
+        forwarded = st.context.headers.get("X-Forwarded-For")
+        if forwarded:
+            return forwarded.split(",")[0].strip()
         return st.context.ip_address
     except Exception:
         return None
@@ -31,17 +49,14 @@ def is_admin() -> bool:
 
 
 def render_ip_diagnostic() -> None:
-    """Surfaces the IP Streamlit actually detected, for non-admins only --
-    the practical way to debug ADMIN_ALLOWED_IPS not matching, since a
-    hosting platform's proxy/load balancer can mean the detected address
-    isn't the one you'd get from "what's my IP" (see is_admin's module
-    docstring). Copy whatever this shows into ADMIN_ALLOWED_IPS if you
-    expected to be recognized as admin and weren't.
+    """Debug view of the detected IP, gated behind a `?debug=1` URL param
+    instead of always showing -- regular visitors never see this; you can
+    pull it up on demand at yoursite.streamlit.app/?debug=1 if admin access
+    isn't unlocking and you need to see what's actually being detected.
     """
-    if is_admin():
+    if st.query_params.get("debug") != "1":
         return
-    ip = _visitor_ip()
-    st.caption(f"Detected visitor IP: `{ip or 'unavailable'}` -- not on the admin allowlist for this deployment.")
+    st.caption(f"[debug] Detected visitor IP: `{_visitor_ip() or 'unavailable'}` -- admin: {is_admin()}")
 
 
 def trigger_refresh_workflow() -> tuple[bool, str]:
