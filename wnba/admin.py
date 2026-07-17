@@ -30,6 +30,20 @@ def is_admin() -> bool:
     return bool(ip and ip in ADMIN_ALLOWED_IPS)
 
 
+def render_ip_diagnostic() -> None:
+    """Surfaces the IP Streamlit actually detected, for non-admins only --
+    the practical way to debug ADMIN_ALLOWED_IPS not matching, since a
+    hosting platform's proxy/load balancer can mean the detected address
+    isn't the one you'd get from "what's my IP" (see is_admin's module
+    docstring). Copy whatever this shows into ADMIN_ALLOWED_IPS if you
+    expected to be recognized as admin and weren't.
+    """
+    if is_admin():
+        return
+    ip = _visitor_ip()
+    st.caption(f"Detected visitor IP: `{ip or 'unavailable'}` -- not on the admin allowlist for this deployment.")
+
+
 def trigger_refresh_workflow() -> tuple[bool, str]:
     """Dispatches the same GitHub Actions workflow the daily cron runs,
     rather than running the (slow, one-request-per-game) refresh inside the

@@ -29,6 +29,8 @@ adopted hyperparameter without a backtest to back it up.
 
 **Admin panel** (visible only to you): data freshness, a manual refresh trigger, and -- since you're already identified as admin at that point -- the Bet Builder tab too, so you don't lose it. Unlocked by **IP address only**, matched against `ADMIN_ALLOWED_IPS` -- no password. Works automatically when you visit the *deployed* site from your own network. Two things worth knowing about that choice: it will **not** unlock a local `streamlit run` (`localhost` connections show up as `127.0.0.1`, not your real IP), and if your IP ever changes (ISP reassignment, different network) you'll need to update `ADMIN_ALLOWED_IPS` before admin access works again.
 
+If the admin panel isn't showing up when you expect it to, check the small "Detected visitor IP" caption at the bottom of the page (only shown to non-admins) -- it's the exact value Streamlit saw for you, which is what needs to be in `ADMIN_ALLOWED_IPS`. A hosting platform's proxy/load balancer can mean this isn't the same address a plain "what's my IP" search gives you.
+
 Secrets to set (Streamlit Cloud: app dashboard -> Settings -> Secrets, TOML format; locally: your `.env`, see `.env.example`):
 
 ```toml

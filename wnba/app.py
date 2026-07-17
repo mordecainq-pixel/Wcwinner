@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 from wnba import admin, status as refresh_status
 from wnba.betbuilder import KNOWN_BOOKMAKERS, add_player_prop_legs, combine_legs, find_best_combo, gather_match_options
@@ -66,8 +67,92 @@ def _cached_game_matches(_model, bookmakers):
     return gather_match_options(bookmakers=bookmakers)
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def _cached_simulate(_player_box, _opponent_factors, player_id, opponent):
+    """Without this cache, simulate_player_games() (an unseeded random
+    bootstrap) reran on every single widget interaction anywhere on the
+    page -- Streamlit reruns the whole script on any rerun, including the
+    one triggered by editing a cell in the probability board below. That
+    meant the board's underlying data changed out from under the editor on
+    every keystroke, so an edited Line value just got silently overwritten
+    by a freshly-randomized default instead of sticking. Caching per
+    (player_id, opponent) keeps the simulation -- and the editor's base
+    data -- stable across reruns, which is what makes edits actually hold.
+    `_player_box`/`_opponent_factors` underscore-prefixed so Streamlit
+    doesn't try to hash the (large) DataFrames themselves.
+    """
+    return simulate_player_games(_player_box, player_id, opponent, _opponent_factors)
+
+
+def render_bouncing_ball() -> None:
+    """A DVD-logo-style bouncing basketball, purely cosmetic. Uses
+    components.html (not st.markdown) because injected <script> tags don't
+    execute when set via markdown's innerHTML-style insertion -- components
+    renders into a real iframe, where scripts run normally. The iframe
+    resizes itself to cover the full viewport (via `window.frameElement`)
+    so the ball can roam the whole page, not just a small embedded box, and
+    a `window.__ballStarted` guard stops Streamlit's rerun-on-every-
+    interaction behavior from spawning a fresh ball (and resetting its
+    position) on every click elsewhere on the page.
+    """
+    components.html(
+        """
+        <script>
+        (function() {
+            var frame = window.frameElement;
+            if (frame) {
+                frame.style.position = 'fixed';
+                frame.style.top = '0';
+                frame.style.left = '0';
+                frame.style.width = '100vw';
+                frame.style.height = '100vh';
+                frame.style.border = 'none';
+                frame.style.pointerEvents = 'none';
+                frame.style.zIndex = '999999';
+            }
+            if (window.__ballStarted) return;
+            window.__ballStarted = true;
+
+            function start() {
+                var ball = document.createElement('div');
+                ball.style.cssText = 'position:fixed; width:46px; height:46px; font-size:38px; ' +
+                    'line-height:46px; text-align:center; user-select:none;';
+                ball.textContent = '🏀';
+                document.body.appendChild(ball);
+
+                var x = 40, y = 40, vx = 2.4, vy = 1.8;
+                function step() {
+                    var w = window.innerWidth - 46;
+                    var h = window.innerHeight - 46;
+                    x += vx; y += vy;
+                    if (x <= 0 || x >= w) { vx = -vx; x = Math.max(0, Math.min(x, w)); }
+                    if (y <= 0 || y >= h) { vy = -vy; y = Math.max(0, Math.min(y, h)); }
+                    ball.style.left = x + 'px';
+                    ball.style.top = y + 'px';
+                    requestAnimationFrame(step);
+                }
+                requestAnimationFrame(step);
+            }
+
+            // The <script> can execute before <body> exists yet (it's not
+            // deferred), so document.body may still be null here -- wait
+            // for it rather than crashing.
+            if (document.body) {
+                start();
+            } else {
+                document.addEventListener('DOMContentLoaded', start);
+            }
+        })();
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
+
+
 def main() -> None:
     st.set_page_config(page_title="WNBA Predictor", layout="centered", page_icon="🏀")
+    render_bouncing_ball()
     st.title("WNBA Match & Player Prop Predictor")
     st.caption("Margin/total model, self-calculated Elo, bootstrap-simulated player props.")
 
@@ -110,6 +195,7 @@ def main() -> None:
     finished = current_status.get("finished_at")
     if finished:
         st.caption(f"Data last updated: {finished[:16].replace('T', ' ')} UTC")
+    admin.render_ip_diagnostic()
 
 
 def render_updating_banner(current_status: dict) -> None:
@@ -257,7 +343,7 @@ def render_props_tab(player_box, opponent_factors) -> None:
     n_games = int((player_box["player_id"] == player_id).sum())
 
     try:
-        sim = simulate_player_games(player_box, player_id, opponent, opponent_factors)
+        sim = _cached_simulate(player_box, opponent_factors, player_id, opponent)
     except ValueError:
         st.warning(f"Not enough game history for {player_name} yet.")
         return

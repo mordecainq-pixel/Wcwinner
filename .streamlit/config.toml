@@ -1,10 +1,22 @@
-# Shared theme for both apps (wcwinner/app.py and wnba/app.py) -- matches
-# the color palette already used in visualize.py's rendered cards, so the
-# website and the graphic cards read as one consistent system.
+# Shared theme for both apps (wcwinner/app.py and wnba/app.py). No `base`
+# is set at the top level -- that's deliberate: it lets Streamlit's native
+# System/Light/Dark picker (the sun/moon icons already built into the
+# top-right menu) control which of the two palettes below applies,
+# defaulting to the visitor's OS-level preference on first load and
+# remembering their choice (via the browser) if they override it. Setting
+# `base` here would have hardcoded one mode for everyone regardless of
+# their system setting or the picker -- that was the earlier bug.
 [theme]
-base = "light"
+font = "sans serif"
+
+[theme.light]
 primaryColor = "#3c8c40"
 backgroundColor = "#f2efe9"
 secondaryBackgroundColor = "#e9e5db"
 textColor = "#2b2b2b"
-font = "sans serif"
+
+[theme.dark]
+primaryColor = "#4caf50"
+backgroundColor = "#12140f"
+secondaryBackgroundColor = "#1e2118"
+textColor = "#e8e6e0"
