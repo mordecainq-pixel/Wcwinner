@@ -1,62 +1,59 @@
 """Admin gate for the public deployment: unlocks a settings panel and the
 Bet Builder tab (kept off the public site -- see betbuilder.py's cost note)
-for whoever's IP is on the allowlist.
+for whoever knows the password.
 
-IP-only, by design choice: no password fallback. That means a local
-`streamlit run wnba/app.py` will never show as admin -- `st.context.
-ip_address` is `127.0.0.1` for any local connection, not your public IP --
-and if your IP ever changes (ISP reassignment, different network), you'll
-need to update ADMIN_ALLOWED_IPS on the deployment before the admin panel
-unlocks again. That tradeoff was chosen deliberately over keeping a
-password around as a second way in.
+IP-based gating was tried first and abandoned after confirming live that
+Streamlit Community Cloud proxies requests through a pool of internal
+servers -- the detected "visitor IP" changed on every single page reload,
+not just between sessions, so there was never a stable address to check
+against. Replaced with a hidden URL route (this deployment's
+`/adminlogs`, wired up via st.Page/st.navigation in app.py) plus a
+password -- doesn't depend on any network/hosting detail, so it can't
+break the same way.
 
-CONFIRMED LIVE: on Streamlit Community Cloud, `st.context.ip_address`
-returns `::ffff:127.0.0.1` (IPv6 notation for localhost) for every
-visitor, not their real address -- the app sits behind an internal reverse
-proxy, and the raw connection Streamlit sees is that proxy's own loopback
-connection, not the original client's. So `ip_address` alone is useless for
-this deployment. The fix is the standard one for exactly this situation:
-reverse proxies conventionally record the real client IP in the
-`X-Forwarded-For` header (the first address if there's a chain of proxies),
-so that's checked first, with `ip_address` only as a fallback for hosts
-that don't sit behind a proxy at all (e.g. if this ever runs somewhere
-else). Not verified against Streamlit Cloud's exact header behavior from
-here (no way to reach the real deployment from this environment) -- if
-admin access still doesn't unlock after this, the header may need a
-different name or index, not necessarily "first entry."
+Unlock state lives in st.session_state, which is per-browser-session (one
+WebSocket connection) -- a hard page reload or a new tab starts a fresh
+session, so the password needs re-entering at /adminlogs after either of
+those. That's a real tradeoff of not persisting anything (a cookie, a
+long-lived token) -- traded deliberately for simplicity and for not
+storing a credential anywhere longer than the current tab needs it.
 """
 from __future__ import annotations
 
 import requests
 import streamlit as st
 
-from wnba.config import ADMIN_ALLOWED_IPS, ADMIN_GITHUB_TOKEN, GITHUB_REPO, GITHUB_WORKFLOW_FILE, GITHUB_WORKFLOW_REF
-
-
-def _visitor_ip() -> str | None:
-    try:
-        forwarded = st.context.headers.get("X-Forwarded-For")
-        if forwarded:
-            return forwarded.split(",")[0].strip()
-        return st.context.ip_address
-    except Exception:
-        return None
+from wnba.config import ADMIN_GITHUB_TOKEN, ADMIN_PASSWORD, GITHUB_REPO, GITHUB_WORKFLOW_FILE, GITHUB_WORKFLOW_REF
 
 
 def is_admin() -> bool:
-    ip = _visitor_ip()
-    return bool(ip and ip in ADMIN_ALLOWED_IPS)
+    return bool(st.session_state.get("admin_unlocked"))
 
 
-def render_ip_diagnostic() -> None:
-    """Debug view of the detected IP, gated behind a `?debug=1` URL param
-    instead of always showing -- regular visitors never see this; you can
-    pull it up on demand at yoursite.streamlit.app/?debug=1 if admin access
-    isn't unlocking and you need to see what's actually being detected.
+def render_admin_login_page(main_page) -> None:
+    """The entire content of the hidden /adminlogs route. Deliberately
+    shows nothing but a password box -- no hint of what's behind it -- so
+    stumbling onto the URL without the password reveals nothing.
     """
-    if st.query_params.get("debug") != "1":
+    st.title("Admin")
+
+    if is_admin():
+        st.success("Already unlocked for this session.")
+        if st.button("Go to site"):
+            st.switch_page(main_page)
         return
-    st.caption(f"[debug] Detected visitor IP: `{_visitor_ip() or 'unavailable'}` -- admin: {is_admin()}")
+
+    if not ADMIN_PASSWORD:
+        st.error("ADMIN_PASSWORD is not configured on this deployment.")
+        return
+
+    password = st.text_input("Password", type="password", key="admin_login_password")
+    if st.button("Unlock", type="primary"):
+        if password and password == ADMIN_PASSWORD:
+            st.session_state["admin_unlocked"] = True
+            st.switch_page(main_page)
+        else:
+            st.error("Incorrect password.")
 
 
 def trigger_refresh_workflow() -> tuple[bool, str]:

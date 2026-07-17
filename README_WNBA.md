@@ -27,14 +27,16 @@ adopted hyperparameter without a backtest to back it up.
 
 **The public site does not include Bet Builder or live market comparison.** Both need The Odds API, whose free tier is a single shared 500-credit/month pool -- fine for one person testing locally, not something that survives real public traffic (see the cost note in `betbuilder.py`/`config.py`). Predictions and player-prop projections need no odds data at all, so they stay fully free and uncapped for everyone.
 
-**Admin panel** (visible only to you): data freshness, a manual refresh trigger, and -- since you're already identified as admin at that point -- the Bet Builder tab too, so you don't lose it. Unlocked by **IP address only**, matched against `ADMIN_ALLOWED_IPS` -- no password. Works automatically when you visit the *deployed* site from your own network. Two things worth knowing about that choice: it will **not** unlock a local `streamlit run` (`localhost` connections show up as `127.0.0.1`, not your real IP), and if your IP ever changes (ISP reassignment, different network) you'll need to update `ADMIN_ALLOWED_IPS` before admin access works again.
+**Admin panel** (visible only to you): data freshness, a manual refresh trigger, and -- since you're already identified as admin at that point -- the Bet Builder tab too, so you don't lose it. Unlocked via a **hidden URL route + password**, not IP: visit `yoursite.streamlit.app/adminlogs` (a real page, not shown in any menu -- `st.Page(..., visibility="hidden")` + `st.navigation(position="hidden")`, so there's no nav widget anywhere for anyone), enter the password, and you're redirected to the normal site with the extra tabs unlocked for that browser session.
 
-Confirmed live on Streamlit Community Cloud: `st.context.ip_address` alone returns `::ffff:127.0.0.1` (the app's own internal reverse proxy, not the real visitor) for everyone, so IP detection reads the standard `X-Forwarded-For` header first and only falls back to `ip_address` if that's missing. If the admin panel still isn't unlocking, visit `yoursite.streamlit.app/?debug=1` -- that's a hidden diagnostic (never shown to regular visitors) that prints the exact IP Streamlit detected for you, which is what needs to be in `ADMIN_ALLOWED_IPS`.
+IP-based gating was tried first and abandoned: confirmed live that Streamlit Community Cloud proxies requests through a pool of internal servers, so the detected "visitor IP" changed on every single page reload, not just between sessions -- there was never a stable address to match against. The URL+password approach doesn't depend on any network/hosting detail, so it can't fail the same way.
+
+One real tradeoff: the unlock only lasts for the current browser session (a hard reload or a new tab starts a fresh one), so you'll re-enter the password at `/adminlogs` each time you come back to check on it -- nothing is remembered longer-term by design.
 
 Secrets to set (Streamlit Cloud: app dashboard -> Settings -> Secrets, TOML format; locally: your `.env`, see `.env.example`):
 
 ```toml
-ADMIN_ALLOWED_IPS = "162.154.102.159"
+ADMIN_PASSWORD = "pick-something-real"
 ADMIN_GITHUB_TOKEN = "ghp_..."   # only needed for the admin panel's manual refresh button
 ```
 

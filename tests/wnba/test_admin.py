@@ -1,4 +1,14 @@
+import streamlit as st
+
 import wnba.admin as admin
+
+
+def test_is_admin_reflects_session_state(monkeypatch):
+    st.session_state["admin_unlocked"] = False
+    assert admin.is_admin() is False
+    st.session_state["admin_unlocked"] = True
+    assert admin.is_admin() is True
+    st.session_state["admin_unlocked"] = False
 
 
 def test_trigger_refresh_workflow_fails_cleanly_without_token(monkeypatch):

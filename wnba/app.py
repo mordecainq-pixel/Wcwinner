@@ -83,8 +83,7 @@ def _cached_simulate(_player_box, _opponent_factors, player_id, opponent):
     return simulate_player_games(_player_box, player_id, opponent, _opponent_factors)
 
 
-def main() -> None:
-    st.set_page_config(page_title="WNBA Predictor", layout="centered", page_icon="🏀")
+def render_main_app() -> None:
     st.title("WNBA Match & Player Prop Predictor")
     st.caption("Margin/total model, self-calculated Elo, bootstrap-simulated player props.")
 
@@ -127,7 +126,22 @@ def main() -> None:
     finished = current_status.get("finished_at")
     if finished:
         st.caption(f"Data last updated: {finished[:16].replace('T', ' ')} UTC")
-    admin.render_ip_diagnostic()
+
+
+def main() -> None:
+    st.set_page_config(page_title="WNBA Predictor", layout="centered", page_icon="🏀")
+
+    main_page = st.Page(render_main_app, title="WNBA Predictor", url_path="", default=True)
+    admin_page = st.Page(
+        lambda: admin.render_admin_login_page(main_page),
+        title="Admin",
+        url_path="adminlogs",
+        visibility="hidden",
+    )
+    # position="hidden" means no nav widget is shown to anyone at all --
+    # admin_page is reachable only by knowing the /adminlogs URL directly.
+    pg = st.navigation([main_page, admin_page], position="hidden")
+    pg.run()
 
 
 def render_updating_banner(current_status: dict) -> None:
