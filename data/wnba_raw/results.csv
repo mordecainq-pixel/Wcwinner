@@ -3385,3 +3385,7 @@ event_id,date,home_team,away_team,home_score,away_score,is_playoff,neutral,seaso
 401857069,2026-07-15,Minnesota Lynx,Los Angeles Sparks,96,87,False,False,2026
 401857070,2026-07-16,Indiana Fever,Golden State Valkyries,75,88,False,False,2026
 401857071,2026-07-16,Washington Mystics,Portland Fire,56,75,False,False,2026
+401857073,2026-07-17,Indiana Fever,Seattle Storm,110,107,False,False,2026
+401857074,2026-07-17,Toronto Tempo,Atlanta Dream,92,111,False,False,2026
+401857075,2026-07-17,Chicago Sky,Los Angeles Sparks,96,82,False,False,2026
+401857076,2026-07-18,Phoenix Mercury,Connecticut Sun,83,96,False,False,2026
