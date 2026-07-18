@@ -5,6 +5,7 @@ import pytest
 from wnba.model.player_model import (
     STAT_COLUMNS,
     compute_opponent_factors,
+    compute_out_player_adjustment,
     prob_double_double,
     prob_over,
     prob_triple_double,
@@ -74,6 +75,120 @@ def test_prob_over_and_combo_columns():
     assert prob_over(sim, "points", 10) == pytest.approx(1.0)
     assert prob_over(sim, "points", 100) == pytest.approx(0.0)
     assert prob_over(sim, "pra", 25) == pytest.approx(1.0)  # 20+5+5 = 30 > 25 always
+
+
+def _rival_scenario(n_out_games=10, star_minutes=30.0):
+    """Rival's own history (so star1 qualifies as a rotation player) plus
+    games faced by Rival, split into games star1 played vs. missed --
+    opponents score more (points=30 vs 20) in the missed games.
+    """
+    rival_own = pd.DataFrame({
+        "player_id": ["star1"] * 20,
+        "team": ["Rival"] * 20,
+        "opponent": ["X"] * 20,
+        "event_id": [f"r{i}" for i in range(20)],
+        "date": pd.date_range("2024-01-01", periods=20, freq="3D"),
+        "minutes": [star_minutes] * 20,
+        "points": [15.0] * 20, "rebounds": [5.0] * 20, "assists": [3.0] * 20,
+        "fg3m": [1.0] * 20, "steals": [1.0] * 20, "blocks": [0.5] * 20, "turnovers": [2.0] * 20,
+    })
+    present_events = [f"p{i}" for i in range(30)]
+    out_events = [f"out{i}" for i in range(n_out_games)]
+    faced_present = pd.DataFrame({
+        "player_id": [f"opp{i}" for i in range(30)],
+        "team": ["Other"] * 30,
+        "opponent": ["Rival"] * 30,
+        "event_id": present_events,
+        "date": pd.date_range("2024-02-01", periods=30, freq="1D"),
+        "minutes": [30.0] * 30,
+        "points": [20.0] * 30, "rebounds": [5.0] * 30, "assists": [3.0] * 30,
+        "fg3m": [1.0] * 30, "steals": [1.0] * 30, "blocks": [0.5] * 30, "turnovers": [2.0] * 30,
+    })
+    faced_out = pd.DataFrame({
+        "player_id": [f"oppo{i}" for i in range(n_out_games)],
+        "team": ["Other"] * n_out_games,
+        "opponent": ["Rival"] * n_out_games,
+        "event_id": out_events,
+        "date": pd.date_range("2024-03-15", periods=n_out_games, freq="1D"),
+        "minutes": [30.0] * n_out_games,
+        "points": [30.0] * n_out_games, "rebounds": [5.0] * n_out_games, "assists": [3.0] * n_out_games,
+        "fg3m": [1.0] * n_out_games, "steals": [1.0] * n_out_games, "blocks": [0.5] * n_out_games, "turnovers": [2.0] * n_out_games,
+    })
+    player_box = pd.concat([rival_own, faced_present, faced_out], ignore_index=True)
+
+    avail_rows = [
+        {"event_id": eid, "date": d, "team": "Rival", "player_id": "star1", "played": True}
+        for eid, d in zip(present_events, faced_present["date"])
+    ] + [
+        {"event_id": eid, "date": d, "team": "Rival", "player_id": "star1", "played": False}
+        for eid, d in zip(out_events, faced_out["date"])
+    ]
+    availability = pd.DataFrame(avail_rows)
+    return player_box, availability
+
+
+def test_out_player_adjustment_reflects_real_missed_games():
+    player_box, availability = _rival_scenario(n_out_games=10)
+    adj = compute_out_player_adjustment(player_box, availability, "Rival", {"star1"})
+    # opponents scored more (30 vs 20) in star1's real missed games -- factor should reflect that
+    assert adj["points"] > 1.05
+    assert adj["points"] < 1.6  # within the configured clip band, not an extreme swing
+
+
+def test_out_player_adjustment_shrinks_toward_one_with_few_missed_games():
+    small_box, small_avail = _rival_scenario(n_out_games=1)
+    large_box, large_avail = _rival_scenario(n_out_games=10)
+    adj_small = compute_out_player_adjustment(small_box, small_avail, "Rival", {"star1"})
+    adj_large = compute_out_player_adjustment(large_box, large_avail, "Rival", {"star1"})
+    # same underlying per-game effect, but 1 missed game should be shrunk closer to 1.0
+    # than 10 missed games -- less evidence, less confidence, not the raw ratio either time
+    assert abs(adj_small["points"] - 1.0) < abs(adj_large["points"] - 1.0)
+
+
+def test_out_player_adjustment_ignores_non_rotation_scratch():
+    player_box, availability = _rival_scenario(n_out_games=10)
+    # "bench1" has almost no track record on Rival -- shouldn't qualify
+    bench_rows = pd.DataFrame({
+        "player_id": ["bench1"] * 2,
+        "team": ["Rival"] * 2,
+        "opponent": ["X"] * 2,
+        "event_id": ["b0", "b1"],
+        "date": pd.date_range("2024-01-01", periods=2, freq="3D"),
+        "minutes": [4.0, 6.0],
+        "points": [1.0, 2.0], "rebounds": [0.0, 1.0], "assists": [0.0, 0.0],
+        "fg3m": [0.0, 0.0], "steals": [0.0, 0.0], "blocks": [0.0, 0.0], "turnovers": [0.0, 0.0],
+    })
+    player_box = pd.concat([player_box, bench_rows], ignore_index=True)
+    adj = compute_out_player_adjustment(player_box, availability, "Rival", {"bench1"})
+    assert (adj == 1.0).all()
+
+
+def test_out_player_adjustment_no_out_players_is_identity():
+    player_box, availability = _rival_scenario()
+    adj = compute_out_player_adjustment(player_box, availability, "Rival", set())
+    assert (adj == 1.0).all()
+
+
+def test_simulate_player_games_applies_out_player_adjustment():
+    player_box, availability = _rival_scenario(n_out_games=10)
+    factors = compute_opponent_factors(player_box)
+    p1_rows = pd.DataFrame({
+        "player_id": ["p1"] * 20,
+        "date": pd.date_range("2024-04-01", periods=20, freq="1D"),
+        "opponent": ["Rival"] * 20,
+        "team": ["Shooter"] * 20,
+        "event_id": [f"s{i}" for i in range(20)],
+        "points": [20.0] * 20, "rebounds": [0.0] * 20, "assists": [0.0] * 20,
+        "fg3m": [0.0] * 20, "steals": [0.0] * 20, "blocks": [0.0] * 20, "turnovers": [0.0] * 20,
+    })
+    player_box = pd.concat([player_box, p1_rows], ignore_index=True)
+
+    baseline = simulate_player_games(player_box, "p1", "Rival", factors, n_sims=3000, rng=np.random.default_rng(0))
+    adjusted = simulate_player_games(
+        player_box, "p1", "Rival", factors, n_sims=3000, rng=np.random.default_rng(0),
+        out_player_ids={"star1"}, availability=availability,
+    )
+    assert adjusted["points"].mean() > baseline["points"].mean()
 
 
 def test_double_double_and_triple_double_probabilities():

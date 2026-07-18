@@ -1,6 +1,6 @@
 import pandas as pd
 
-from wnba.betbuilder import Leg, MatchOptions, add_player_prop_legs, combine_legs, find_best_combo
+from wnba.betbuilder import Leg, MatchOptions, add_player_prop_legs, combine_legs, find_best_combo, out_player_ids_for_team
 
 
 def _leg(home, away, market_type, pick, model_prob, odds, market_prob=None, line=None, player_name=None, stat=None):
@@ -113,6 +113,16 @@ def test_add_player_prop_legs_no_op_without_event_id():
     match = MatchOptions("Home", "Away", "2026-07-05", legs=[])
     updated = add_player_prop_legs(match, pd.DataFrame(), pd.DataFrame())
     assert updated is match
+
+
+def test_out_player_ids_for_team_only_counts_status_out():
+    injuries = pd.DataFrame([
+        {"team": "Seattle Storm", "player_id": "1", "player_name": "A", "status": "Out"},
+        {"team": "Seattle Storm", "player_id": "2", "player_name": "B", "status": "Questionable"},
+        {"team": "Indiana Fever", "player_id": "3", "player_name": "C", "status": "Out"},
+        {"team": "Seattle Storm", "player_id": None, "player_name": "D", "status": "Out"},
+    ])
+    assert out_player_ids_for_team(injuries, "Seattle Storm") == {"1"}
 
 
 def test_find_best_combo_never_picks_negative_ev_leg_when_a_positive_one_exists():

@@ -1,4 +1,4 @@
-from wnba.data.espn_injuries import team_injuries
+from wnba.data.espn_injuries import _extract_player_id, team_injuries
 
 
 def test_team_injuries_filters_to_requested_team():
@@ -10,3 +10,18 @@ def test_team_injuries_filters_to_requested_team():
     result = team_injuries("Connecticut Sun", injuries=df)
     assert len(result) == 1
     assert result.iloc[0]["player_name"] == "Saniya Rivers"
+
+
+def test_extract_player_id_parses_playercard_link():
+    athlete = {
+        "displayName": "Taina Mair",
+        "links": [
+            {"rel": ["playercard", "desktop", "athlete"], "href": "https://www.espn.com/wnba/player/_/id/5106222/taina-mair"},
+            {"rel": ["stats", "desktop", "athlete"], "href": "https://www.espn.com/wnba/player/stats/_/id/5106222/taina-mair"},
+        ],
+    }
+    assert _extract_player_id(athlete) == "5106222"
+
+
+def test_extract_player_id_missing_link_returns_none():
+    assert _extract_player_id({"displayName": "No Links", "links": []}) is None

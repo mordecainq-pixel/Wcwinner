@@ -12,12 +12,12 @@ adopted hyperparameter without a backtest to back it up.
 |---|---|
 | Team results + Elo + margin model refit | **Fully automated.** `wnba-predictor refresh` re-pulls every completed game from ESPN's public scoreboard API, recomputes Elo, and refits the margin/total model. |
 | Today's/upcoming schedule | **Fully automated.** `wnba-predictor today [--date YYYY-MM-DD]` pulls the live scoreboard, including in-progress and not-yet-started games. |
-| Player box scores + prop projections | **Automated, opt-in.** `wnba-predictor refresh --players` re-pulls per-player box scores (one HTTP request per game, so it's slow -- ~15 min for a 3-year window) and recomputes opponent "stats allowed" factors. Kept separate from the fast team refresh so a routine refresh doesn't take 15 minutes every time. |
+| Player box scores + prop projections | **Automated, opt-in.** `wnba-predictor refresh --players` re-pulls per-player box scores (one HTTP request per game, so it's slow -- ~15 min for a 3-year window), recomputes opponent "stats allowed" factors, and rebuilds `player_availability.csv` (played/DNP per rostered athlete, from the same fetched box scores -- no extra requests) that the injury-aware adjustment below reads from. Kept separate from the fast team refresh so a routine refresh doesn't take 15 minutes every time. |
 | Betting odds / market comparison | **Fully automated** via The Odds API, both game lines (h2h/spreads/totals) and player props (points/rebounds/assists/threes/PRA/PR/PA/RA/double-double/triple-double). See the cost note below before using this heavily -- player props are NOT cheap. |
-| Injury report | **Fully automated**, unlike `wcwinner`'s manual squad-strength field -- ESPN publishes a real, current, free league-wide injury report (status, injury type, a human-written comment) with no auth needed. `wnba-predictor injuries [--team X]`. Still not fed into the model's predictions quantitatively (see below). |
+| Injury report | **Fully automated**, unlike `wcwinner`'s manual squad-strength field -- ESPN publishes a real, current, free league-wide injury report (status, injury type, a human-written comment) with no auth needed. `wnba-predictor injuries [--team X]`. `status == "Out"` for a rotation player also feeds player-prop projections, see below. |
 | First Basket Scorer | **Not implemented.** Would need play-by-play parsing (ESPN's summary endpoint has a separate `plays` field) that hasn't been verified for data quality/coverage yet -- left out rather than shipped as an unvalidated guess. |
 
-**Why injuries aren't fed into the model's predictions despite being automated data:** knowing a player is "Out" is one thing; knowing exactly how many points/win-probability that's worth is another, and that needs its own backtested answer (does subtracting a specific player's recent production and redistributing minutes actually improve predictions?) before it should move a number. For now the report is surfaced for you to factor in yourself, same spirit as `wcwinner`'s manual multiplier -- the difference here is just that fetching the report itself no longer requires you to go find it.
+**How a currently-Out player feeds player-prop projections:** only `status == "Out"` counts (Questionable/Day-To-Day aren't reliable enough to condition on before the game happens), and only for a player with a real rotation track record on their team (`PLAYER_INJURY_MIN_MINUTES`/`MIN_GAMES` in `config.py` -- filters out fringe/two-way scratches). The adjustment itself is read off REAL history, not an assumed point value: `model/player_model.py`'s `compute_out_player_adjustment` compares what opponents actually scored against that team in games the SAME player historically missed vs. all their games, shrinking toward "no effect" when there isn't much such history yet (`PLAYER_INJURY_SHRINKAGE_K`). Multiple simultaneous absences combine multiplicatively (an independence simplification, documented in the function) and the combined result is clipped (`PLAYER_INJURY_FACTOR_BOUNDS`) so a couple of small-sample estimates can't compound into an extreme swing. Requires `player_availability.csv` (played/DNP per rostered athlete per game, built by the same `refresh --players` pass as the box scores) -- validated in `validate/player_backtest.py`'s `compare_injury_adjustment` (PIT calibration, baseline vs. injury-aware, restricted to real held-out games with a real opponent absence) before being wired into the live app/CLI/Bet Builder projections.
 
 ## Public deployment (free, no server to run)
 
@@ -201,7 +201,7 @@ wnba/
   config.py               paths, credentials, tunable model constants
   data/
     espn_ingest.py         historical team results (one request/season)
-    espn_player_ingest.py  historical player box scores (one request/game)
+    espn_player_ingest.py  historical player box scores + availability (one request/game)
     espn_live.py           today's/any date's schedule, team rosters
     espn_injuries.py       live league-wide injury report
     odds_client.py         The Odds API: game lines + player props
@@ -230,5 +230,8 @@ tests/wnba/                pytest suite
 - Series-aware (best-of-N) playoff simulation -- currently no bracket/series
   Monte Carlo, unlike `wcwinner`'s tournament simulator.
 - First Basket Scorer (needs play-by-play data verification first).
-- Injuries are surfaced but not fed into the model's predictions
-  quantitatively (see "Why injuries aren't fed into the model" above).
+- The injury-aware opponent adjustment only conditions on the opponent's
+  currently-Out players, not the projected player's own team's absences
+  (e.g. a change in who's setting them up), and treats simultaneous
+  absences as independent -- both documented simplifications, not yet
+  backtested separately.

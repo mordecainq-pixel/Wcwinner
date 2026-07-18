@@ -23,6 +23,10 @@ import pandas as pd
 
 from wnba.config import (
     PLAYER_FORM_HALFLIFE_GAMES,
+    PLAYER_INJURY_FACTOR_BOUNDS,
+    PLAYER_INJURY_MIN_GAMES,
+    PLAYER_INJURY_MIN_MINUTES,
+    PLAYER_INJURY_SHRINKAGE_K,
     PLAYER_MIN_GAMES_FOR_PROJECTION,
     PLAYER_OPPONENT_SHRINKAGE_K,
     PLAYER_SIM_COUNT,
@@ -57,6 +61,91 @@ def compute_opponent_factors(player_box: pd.DataFrame, stat_cols: list[str] = ST
     return shrunk
 
 
+def _qualifying_out_players(
+    player_box: pd.DataFrame,
+    team: str,
+    out_player_ids: set[str],
+    as_of: pd.Timestamp | None,
+    min_minutes: float,
+    min_games: int,
+) -> list[str]:
+    """Currently-out players worth conditioning on: enough of a track record
+    on THIS team, at real rotation minutes. Filters out fringe/two-way
+    scratches (e.g. a "coach's decision" DNP for someone who barely plays)
+    so a single noisy bench absence can't move a projection -- only players
+    whose own presence has a measurable footprint count.
+    """
+    history = player_box[player_box["team"] == team]
+    if as_of is not None:
+        history = history[history["date"] <= as_of]
+    qualifying = []
+    for pid in out_player_ids:
+        rows = history[history["player_id"] == pid]
+        if len(rows) >= min_games and rows["minutes"].mean() >= min_minutes:
+            qualifying.append(pid)
+    return qualifying
+
+
+def compute_out_player_adjustment(
+    player_box: pd.DataFrame,
+    availability: pd.DataFrame,
+    opponent_team: str,
+    out_player_ids: set[str],
+    stat_cols: list[str] = STAT_COLUMNS,
+    as_of: pd.Timestamp | None = None,
+    min_minutes: float = PLAYER_INJURY_MIN_MINUTES,
+    min_games: int = PLAYER_INJURY_MIN_GAMES,
+    shrinkage_k: float = PLAYER_INJURY_SHRINKAGE_K,
+    factor_bounds: tuple[float, float] = PLAYER_INJURY_FACTOR_BOUNDS,
+) -> pd.Series:
+    """Multiplicative adjustment to `opponent_team`'s stats-allowed factor
+    for currently-out rotation players, read off REAL history of this same
+    team's own games without each player -- not an assumed point value.
+
+    For each qualifying out player, compares what opponents actually scored
+    against `opponent_team` in that player's historically missed games vs.
+    all of `opponent_team`'s games, shrinking toward 1.0 (no effect) when
+    there isn't much such history yet. Multiple simultaneous absences are
+    combined by multiplying their marginal effects, which treats them as
+    independent -- a simplification (same spirit as prob_stat_and_team_win's
+    documented independence assumption), not a validated joint estimate.
+    The combined result is clipped to `factor_bounds` so a couple of noisy
+    small-sample marginal estimates can't compound into an extreme swing.
+    """
+    identity = pd.Series(1.0, index=stat_cols)
+    if not out_player_ids:
+        return identity
+
+    qualifying = _qualifying_out_players(player_box, opponent_team, out_player_ids, as_of, min_minutes, min_games)
+    if not qualifying:
+        return identity
+
+    faced = player_box[player_box["opponent"] == opponent_team]
+    avail = availability[availability["team"] == opponent_team]
+    if as_of is not None:
+        faced = faced[faced["date"] <= as_of]
+        avail = avail[avail["date"] <= as_of]
+    if faced.empty:
+        return identity
+    overall_mean = faced[stat_cols].mean()
+
+    combined = pd.Series(1.0, index=stat_cols)
+    for pid in qualifying:
+        missed_events = avail.loc[(avail["player_id"] == pid) & ~avail["played"], "event_id"].unique()
+        if len(missed_events) == 0:
+            continue
+        out_games = faced[faced["event_id"].isin(missed_events)]
+        if out_games.empty:
+            continue
+        marginal_raw = out_games[stat_cols].mean() / overall_mean
+        weight = len(missed_events) / (len(missed_events) + shrinkage_k)
+        marginal_shrunk = 1.0 + weight * (marginal_raw - 1.0)
+        combined = combined * marginal_shrunk
+
+    lo, hi = factor_bounds
+    return combined.clip(lower=lo, upper=hi)
+
+
 def _recency_weights(n: int, halflife_games: float) -> np.ndarray:
     games_ago = np.arange(n)[::-1]  # row 0 (oldest) gets the largest games_ago
     weights = 0.5 ** (games_ago / halflife_games)
@@ -73,10 +162,16 @@ def simulate_player_games(
     halflife_games: float = PLAYER_FORM_HALFLIFE_GAMES,
     as_of: pd.Timestamp | None = None,
     rng: np.random.Generator | None = None,
+    out_player_ids: set[str] | None = None,
+    availability: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """Weighted-bootstrap `n_sims` simulated game lines for one player
     against one opponent. Returns a DataFrame with `stat_cols` plus derived
     combo columns (pra, pr, pa, ra, sb).
+
+    `out_player_ids` + `availability` are both optional and default to no
+    adjustment -- pass both to additionally condition the opponent factor on
+    real, currently-out rotation players via compute_out_player_adjustment.
     """
     rows = player_box[player_box["player_id"] == player_id].sort_values("date")
     if as_of is not None:
@@ -93,6 +188,12 @@ def simulate_player_games(
         factor_row = opponent_factors.loc[opponent_team, stat_cols]
     else:
         factor_row = pd.Series(1.0, index=stat_cols)  # unseen opponent (e.g. new franchise): no adjustment
+
+    if out_player_ids and availability is not None:
+        factor_row = factor_row * compute_out_player_adjustment(
+            player_box, availability, opponent_team, out_player_ids, stat_cols=stat_cols, as_of=as_of,
+        )
+
     sim = sampled.mul(factor_row, axis=1)
 
     sim["pra"] = sim["points"] + sim["rebounds"] + sim["assists"]

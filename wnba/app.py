@@ -19,10 +19,10 @@ import pandas as pd
 import streamlit as st
 
 from wnba import admin, status as refresh_status
-from wnba.betbuilder import KNOWN_BOOKMAKERS, add_player_prop_legs, combine_legs, find_best_combo, gather_match_options
+from wnba.betbuilder import KNOWN_BOOKMAKERS, add_player_prop_legs, combine_legs, find_best_combo, gather_match_options, out_player_ids_for_team
 from wnba.data.espn_injuries import fetch_injuries
 from wnba.data.espn_live import team_roster, todays_games
-from wnba.data.espn_player_ingest import load_player_boxscores
+from wnba.data.espn_player_ingest import load_player_availability, load_player_boxscores
 from wnba.data.odds_client import game_market_probabilities
 from wnba.model import margin_model
 from wnba.model.player_model import STAT_COLUMNS, STAT_LABELS, prob_double_double, prob_over, prob_triple_double, simulate_player_games
@@ -37,13 +37,22 @@ def load_model():
 
 @st.cache_resource
 def load_props_data():
-    """Returns (player_box, opponent_factors) or (None, None) if the
-    player backfill hasn't been run yet.
+    """Returns (player_box, opponent_factors, availability), or (None, None,
+    None) if the player backfill hasn't been run yet. `availability` (used
+    for the injury-aware opponent adjustment) comes back None on its own if
+    player data was last refreshed before that feature existed -- props and
+    Bet Builder still work, just without the adjustment, rather than
+    breaking outright.
     """
     try:
-        return load_player_boxscores(), load_opponent_factors()
+        player_box, opponent_factors = load_player_boxscores(), load_opponent_factors()
     except FileNotFoundError:
-        return None, None
+        return None, None, None
+    try:
+        availability = load_player_availability()
+    except FileNotFoundError:
+        availability = None
+    return player_box, opponent_factors, availability
 
 
 @st.cache_data(ttl=300, show_spinner="Fetching today's games...")
@@ -67,7 +76,7 @@ def _cached_game_matches(_model, bookmakers):
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def _cached_simulate(_player_box, _opponent_factors, player_id, opponent):
+def _cached_simulate(_player_box, _opponent_factors, player_id, opponent, out_ids=frozenset(), _availability=None):
     """Without this cache, simulate_player_games() (an unseeded random
     bootstrap) reran on every single widget interaction anywhere on the
     page -- Streamlit reruns the whole script on any rerun, including the
@@ -75,12 +84,17 @@ def _cached_simulate(_player_box, _opponent_factors, player_id, opponent):
     meant the board's underlying data changed out from under the editor on
     every keystroke, so an edited Line value just got silently overwritten
     by a freshly-randomized default instead of sticking. Caching per
-    (player_id, opponent) keeps the simulation -- and the editor's base
-    data -- stable across reruns, which is what makes edits actually hold.
-    `_player_box`/`_opponent_factors` underscore-prefixed so Streamlit
-    doesn't try to hash the (large) DataFrames themselves.
+    (player_id, opponent, out_ids) keeps the simulation -- and the editor's
+    base data -- stable across reruns, which is what makes edits actually
+    hold. `_player_box`/`_opponent_factors`/`_availability`
+    underscore-prefixed so Streamlit doesn't try to hash the (large)
+    DataFrames themselves; `out_ids` is a frozenset (hashable) so it can
+    still be a real cache key -- a change in who's out should invalidate it.
     """
-    return simulate_player_games(_player_box, player_id, opponent, _opponent_factors)
+    return simulate_player_games(
+        _player_box, player_id, opponent, _opponent_factors,
+        out_player_ids=out_ids, availability=_availability,
+    )
 
 
 def render_main_app() -> None:
@@ -99,7 +113,7 @@ def render_main_app() -> None:
         st.error("No fitted model found. Run `wnba-predictor refresh` first.")
         return
 
-    player_box, opponent_factors = load_props_data()
+    player_box, opponent_factors, availability = load_props_data()
 
     if current_status["state"] == "updating":
         st.info("Data refresh in progress (visible to you as admin; hidden from other visitors until it finishes). See below for details.")
@@ -114,12 +128,12 @@ def render_main_app() -> None:
     with rendered[1]:
         render_today_tab(model)
     with rendered[2]:
-        render_props_tab(player_box, opponent_factors)
+        render_props_tab(player_box, opponent_factors, availability)
     with rendered[3]:
         render_injuries_tab()
     if is_admin:
         with rendered[4]:
-            render_bet_builder_tab(model, player_box, opponent_factors)
+            render_bet_builder_tab(model, player_box, opponent_factors, availability)
         with rendered[5]:
             render_admin_tab(current_status)
 
@@ -177,7 +191,7 @@ def render_admin_tab(current_status: dict) -> None:
     except FileNotFoundError:
         st.write("**Team results:** not loaded yet.")
 
-    player_box, _ = load_props_data()
+    player_box, _, _ = load_props_data()
     if player_box is not None:
         st.write(f"**Player box scores:** {len(player_box)} rows, most recent {player_box['date'].max().date()}")
     else:
@@ -255,7 +269,7 @@ def render_today_tab(model) -> None:
         st.write(line)
 
 
-def render_props_tab(player_box, opponent_factors) -> None:
+def render_props_tab(player_box, opponent_factors, availability=None) -> None:
     if player_box is None:
         st.warning("No player box-score data yet. Run `wnba-predictor refresh --players` first (slow: ~1 request/game).")
         return
@@ -288,13 +302,23 @@ def render_props_tab(player_box, opponent_factors) -> None:
 
     n_games = int((player_box["player_id"] == player_id).sum())
 
+    out_ids = frozenset()
+    if availability is not None:
+        injuries = _cached_injuries()
+        out_ids = frozenset(out_player_ids_for_team(injuries, opponent))
+
     try:
-        sim = _cached_simulate(player_box, opponent_factors, player_id, opponent)
+        sim = _cached_simulate(player_box, opponent_factors, player_id, opponent, out_ids=out_ids, _availability=availability)
     except ValueError:
         st.warning(f"Not enough game history for {player_name} yet.")
         return
 
     st.caption(f"Projections from {n_games} games (weighted toward recent form), 10,000 simulations.")
+    if out_ids:
+        st.caption(
+            f"{opponent} has {len(out_ids)} player(s) listed Out (see Injuries tab) -- factored into the "
+            "opponent adjustment for any with enough of a rotation track record; no effect otherwise."
+        )
 
     st.subheader(f"{player_name} -- probability board")
     st.caption(
@@ -354,7 +378,7 @@ def render_injuries_tab() -> None:
         st.caption(row.comment)
 
 
-def render_bet_builder_tab(model, player_box, opponent_factors) -> None:
+def render_bet_builder_tab(model, player_box, opponent_factors, availability=None) -> None:
     st.caption(
         "Pick which games interest you, optionally give a target payout, and it searches only "
         "within those games for the best fit. **Not a guarantee - for analysis/entertainment only.**"
@@ -403,7 +427,14 @@ def render_bet_builder_tab(model, player_box, opponent_factors) -> None:
         chosen_matches = [match_by_label[label] for label in chosen_labels]
         if include_props and player_box is not None:
             with st.spinner("Fetching player props for chosen games..."):
-                chosen_matches = [add_player_prop_legs(m, player_box, opponent_factors, bookmakers=bookmakers) for m in chosen_matches]
+                injuries = _cached_injuries()
+                chosen_matches = [
+                    add_player_prop_legs(
+                        m, player_box, opponent_factors, bookmakers=bookmakers,
+                        availability=availability, injuries=injuries,
+                    )
+                    for m in chosen_matches
+                ]
 
         if target is not None:
             selected = find_best_combo(chosen_matches, target)
