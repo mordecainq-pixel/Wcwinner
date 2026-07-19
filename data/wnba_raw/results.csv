@@ -3389,3 +3389,6 @@ event_id,date,home_team,away_team,home_score,away_score,is_playoff,neutral,seaso
 401857074,2026-07-17,Toronto Tempo,Atlanta Dream,92,111,False,False,2026
 401857075,2026-07-17,Chicago Sky,Los Angeles Sparks,96,82,False,False,2026
 401857076,2026-07-18,Phoenix Mercury,Connecticut Sun,83,96,False,False,2026
+401857077,2026-07-19,Indiana Fever,New York Liberty,108,88,False,False,2026
+401857078,2026-07-19,Minnesota Lynx,Portland Fire,101,93,False,False,2026
+401857079,2026-07-19,Golden State Valkyries,Washington Mystics,74,69,False,False,2026
