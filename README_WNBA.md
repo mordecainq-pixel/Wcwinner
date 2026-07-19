@@ -27,7 +27,9 @@ adopted hyperparameter without a backtest to back it up.
 
 **The public site does not include Bet Builder or live market comparison.** Both need The Odds API, whose free tier is a single shared 500-credit/month pool -- fine for one person testing locally, not something that survives real public traffic (see the cost note in `betbuilder.py`/`config.py`). Predictions and player-prop projections need no odds data at all, so they stay fully free and uncapped for everyone.
 
-**Admin panel** (visible only to you): data freshness, a manual refresh trigger, and -- since you're already identified as admin at that point -- the Bet Builder tab too, so you don't lose it. Unlocked via a **hidden URL route + password**, not IP: visit `yoursite.streamlit.app/adminlogs` (a real page, not shown in any menu -- `st.Page(..., visibility="hidden")` + `st.navigation(position="hidden")`, so there's no nav widget anywhere for anyone), enter the password, and you're redirected to the normal site with the extra tabs unlocked for that browser session.
+**Admin panel** (visible only to you): data freshness, a manual refresh trigger, and -- since you're already identified as admin at that point -- the Bet Builder and Value Scan tabs too, so you don't lose them. Unlocked via a **hidden URL route + password**, not IP: visit `yoursite.streamlit.app/adminlogs` (a real page, not shown in any menu -- `st.Page(..., visibility="hidden")` + `st.navigation(position="hidden")`, so there's no nav widget anywhere for anyone), enter the password, and you're redirected to the normal site with the extra tabs unlocked for that browser session.
+
+**Value Scan tab** (`wnba/value_scan.py`, admin-only): pick one sportsbook and one or more games, and it pulls that book's real player-prop lines and compares each one to the model's own bootstrap projection -- both the raw gap (e.g. model projects 17.5 points, the book has 15.5) and the proper EV at the book's actual payout odds, ranked by EV since a big gap at bad odds isn't necessarily good value. This is the same expensive per-event Odds-API call as Bet Builder's player props, so it only runs on an explicit "Scan now" click. The result is cached to `data/wnba_admin_cache/value_scan.json` (gitignored, outside the daily-refresh commit path -- see `.github/workflows/wnba_daily_refresh.yml`) so reopening the tab just re-reads the last scan instead of spending credits again; a timestamp shows how stale it is.
 
 IP-based gating was tried first and abandoned: confirmed live that Streamlit Community Cloud proxies requests through a pool of internal servers, so the detected "visitor IP" changed on every single page reload, not just between sessions -- there was never a stable address to match against. The URL+password approach doesn't depend on any network/hosting detail, so it can't fail the same way.
 
@@ -213,6 +215,7 @@ wnba/
     metrics.py, backtest.py       team-model log-loss/Brier vs. naive baseline
     player_backtest.py            player-projection PIT calibration check
   betbuilder.py            game + player-prop parlay builder
+  value_scan.py            admin-only: single-book prop scan vs. model, cached to disk
   visualize.py             graphic prediction/prop/parlay cards
   cli.py                   command-line interface
   app.py                   Streamlit UI (streamlit run wnba/app.py)

@@ -27,6 +27,7 @@ from wnba.data.odds_client import game_market_probabilities
 from wnba.model import margin_model
 from wnba.model.player_model import STAT_COLUMNS, STAT_LABELS, prob_double_double, prob_over, prob_triple_double, simulate_player_games
 from wnba.pipeline import load_opponent_factors
+from wnba.value_scan import load_cached_scan, save_scan, scan_bookmaker_value
 from wnba.visualize import render_parlay_card, render_prediction_card, render_prop_card
 
 
@@ -120,7 +121,7 @@ def render_main_app() -> None:
 
     tabs = ["Predict", "Today's Games", "Player Props", "Injuries"]
     if is_admin:
-        tabs += ["Bet Builder", "Admin"]
+        tabs += ["Bet Builder", "Value Scan", "Admin"]
     rendered = st.tabs(tabs)
 
     with rendered[0]:
@@ -135,6 +136,8 @@ def render_main_app() -> None:
         with rendered[4]:
             render_bet_builder_tab(model, player_box, opponent_factors, availability)
         with rendered[5]:
+            render_value_scan_tab(model, player_box, opponent_factors, availability)
+        with rendered[6]:
             render_admin_tab(current_status)
 
     finished = current_status.get("finished_at")
@@ -459,6 +462,90 @@ def render_bet_builder_tab(model, player_box, opponent_factors, availability=Non
 
         fig = render_parlay_card(result)
         st.pyplot(fig)
+
+
+def render_value_scan_tab(model, player_box, opponent_factors, availability=None) -> None:
+    st.caption(
+        "Scan ONE sportsbook's live player-prop lines against the model's own projections and see "
+        "which ones show the biggest gap. **Not a guarantee - for analysis/entertainment only.**"
+    )
+    st.caption(
+        "⚠️ Scanning costs real Odds-API credits per game selected (same market as Bet Builder's "
+        "player props). Results are cached on disk -- reopening this tab does NOT re-spend credits, "
+        "only the 'Scan now' button below does."
+    )
+
+    if player_box is None:
+        st.warning("No player box-score data yet. Run `wnba-predictor refresh --players` first.")
+        return
+
+    book_choice = st.selectbox("Sportsbook to scan", KNOWN_BOOKMAKERS, key="value_scan_book")
+
+    if st.button("Load today's games and odds (one cheap bulk call)", key="value_scan_load_games"):
+        st.session_state["value_scan_odds_loaded"] = True
+    if not st.session_state.get("value_scan_odds_loaded"):
+        st.info("Click above to fetch the current game list -- nothing is fetched automatically on page load.")
+    else:
+        matches = _cached_game_matches(model, book_choice)
+        matches = [m for m in matches if m.legs]
+        if not matches:
+            st.warning("No upcoming games found.")
+        else:
+            match_labels = [f"{m.home_team} vs {m.away_team} ({m.date})" for m in matches]
+            match_by_label = dict(zip(match_labels, matches))
+            chosen_labels = st.multiselect("Which games do you want to scan for value?", match_labels, key="value_scan_games")
+
+            if st.button(f"Scan {book_choice} value now (uses Odds API credits)", type="primary", key="value_scan_run"):
+                if not chosen_labels:
+                    st.warning("Pick at least one game first.")
+                else:
+                    chosen_matches = [match_by_label[label] for label in chosen_labels]
+                    with st.spinner(f"Scanning {book_choice} player props for {len(chosen_matches)} game(s)..."):
+                        injuries = _cached_injuries()
+                        rows = scan_bookmaker_value(
+                            chosen_matches, player_box, opponent_factors, book_choice,
+                            availability=availability, injuries=injuries,
+                        )
+                        save_scan(rows, book_choice)
+                    st.success(f"Scanned {len(chosen_matches)} game(s) -- found {len(rows)} prop/milestone line(s).")
+
+    st.divider()
+    cached = load_cached_scan()
+    if not cached:
+        st.info("No cached scan yet -- pick a book and games above, then scan.")
+        return
+
+    fetched_dt = pd.to_datetime(cached["fetched_at"])
+    age_min = (pd.Timestamp.now(tz="UTC") - fetched_dt).total_seconds() / 60
+    st.caption(
+        f"Showing cached scan: **{cached['bookmaker']}**, fetched {age_min:.0f} min ago "
+        f"({fetched_dt.strftime('%Y-%m-%d %H:%M UTC')}). Odds move -- re-scan if this looks stale."
+    )
+
+    rows = cached["rows"]
+    if not rows:
+        st.info("That scan found no matching prop/milestone lines.")
+        return
+
+    df = pd.DataFrame(rows)
+    df["pick"] = df.apply(
+        lambda r: f"{r['best_side'].capitalize()} {r['book_line']}" if r["book_line"] is not None else "Yes", axis=1,
+    )
+    df["ev_pct"] = df["best_ev"] * 100
+    shown = df[["player_name", "stat", "date", "home_team", "away_team", "book_line", "model_mean", "gap", "pick", "ev_pct"]].rename(columns={
+        "player_name": "Player", "stat": "Stat", "date": "Date", "home_team": "Home", "away_team": "Away",
+        "book_line": "Book Line", "model_mean": "Model Mean", "gap": "Gap (Model - Book)", "pick": "Best Side", "ev_pct": "EV",
+    })
+    st.caption("Ranked by EV (accounts for the book's actual payout odds), not the raw gap -- a big gap with bad odds isn't necessarily good value.")
+    st.dataframe(
+        shown.sort_values("EV", ascending=False),
+        column_config={
+            "EV": st.column_config.NumberColumn(format="%.0f%%"),
+            "Gap (Model - Book)": st.column_config.NumberColumn(format="%+.1f"),
+            "Model Mean": st.column_config.NumberColumn(format="%.1f"),
+        },
+        hide_index=True, use_container_width=True,
+    )
 
 
 if __name__ == "__main__":
