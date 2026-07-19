@@ -19,7 +19,7 @@ import pandas as pd
 import streamlit as st
 
 from wnba import admin, status as refresh_status
-from wnba.betbuilder import KNOWN_BOOKMAKERS, add_player_prop_legs, combine_legs, find_best_combo, gather_match_options, out_player_ids_for_team
+from wnba.betbuilder import KNOWN_BOOKMAKERS, add_player_prop_legs, combine_legs, find_best_combo, gather_match_options
 from wnba.data.espn_injuries import fetch_injuries
 from wnba.data.espn_live import team_roster, todays_games
 from wnba.data.espn_player_ingest import load_player_availability, load_player_boxscores
@@ -305,23 +305,18 @@ def render_props_tab(player_box, opponent_factors, availability=None) -> None:
 
     n_games = int((player_box["player_id"] == player_id).sum())
 
-    out_ids = frozenset()
-    if availability is not None:
-        injuries = _cached_injuries()
-        out_ids = frozenset(out_player_ids_for_team(injuries, opponent))
-
+    # Injury-aware opponent adjustment exists (model/player_model.py) but is
+    # deliberately NOT wired in live here -- backtested and found only a
+    # weak, mostly not-statistically-significant effect (see
+    # validate/player_backtest.py's compare_injury_adjustment), so it stays
+    # off by default rather than shipped as if it were a proven improvement.
     try:
-        sim = _cached_simulate(player_box, opponent_factors, player_id, opponent, out_ids=out_ids, _availability=availability)
+        sim = _cached_simulate(player_box, opponent_factors, player_id, opponent)
     except ValueError:
         st.warning(f"Not enough game history for {player_name} yet.")
         return
 
     st.caption(f"Projections from {n_games} games (weighted toward recent form), 10,000 simulations.")
-    if out_ids:
-        st.caption(
-            f"{opponent} has {len(out_ids)} player(s) listed Out (see Injuries tab) -- factored into the "
-            "opponent adjustment for any with enough of a rotation track record; no effect otherwise."
-        )
 
     st.subheader(f"{player_name} -- probability board")
     st.caption(
@@ -428,14 +423,12 @@ def render_bet_builder_tab(model, player_box, opponent_factors, availability=Non
             return
 
         chosen_matches = [match_by_label[label] for label in chosen_labels]
+        # Injury-aware opponent adjustment intentionally not wired in here --
+        # see render_props_tab's comment for why.
         if include_props and player_box is not None:
             with st.spinner("Fetching player props for chosen games..."):
-                injuries = _cached_injuries()
                 chosen_matches = [
-                    add_player_prop_legs(
-                        m, player_box, opponent_factors, bookmakers=bookmakers,
-                        availability=availability, injuries=injuries,
-                    )
+                    add_player_prop_legs(m, player_box, opponent_factors, bookmakers=bookmakers)
                     for m in chosen_matches
                 ]
 
@@ -500,12 +493,10 @@ def render_value_scan_tab(model, player_box, opponent_factors, availability=None
                     st.warning("Pick at least one game first.")
                 else:
                     chosen_matches = [match_by_label[label] for label in chosen_labels]
+                    # Injury-aware opponent adjustment intentionally not
+                    # wired in here -- see render_props_tab's comment for why.
                     with st.spinner(f"Scanning {book_choice} player props for {len(chosen_matches)} game(s)..."):
-                        injuries = _cached_injuries()
-                        rows = scan_bookmaker_value(
-                            chosen_matches, player_box, opponent_factors, book_choice,
-                            availability=availability, injuries=injuries,
-                        )
+                        rows = scan_bookmaker_value(chosen_matches, player_box, opponent_factors, book_choice)
                         save_scan(rows, book_choice)
                     st.success(f"Scanned {len(chosen_matches)} game(s) -- found {len(rows)} prop/milestone line(s).")
 

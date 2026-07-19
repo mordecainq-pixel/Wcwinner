@@ -11,11 +11,11 @@ import argparse
 
 import pandas as pd
 
-from wnba.betbuilder import add_player_prop_legs, combine_legs, find_best_combo, gather_match_options, out_player_ids_for_team
+from wnba.betbuilder import add_player_prop_legs, combine_legs, find_best_combo, gather_match_options
 from wnba.data import espn_ingest
 from wnba.data.espn_injuries import fetch_injuries, team_injuries
 from wnba.data.espn_live import team_roster, todays_games
-from wnba.data.espn_player_ingest import load_player_availability, load_player_boxscores
+from wnba.data.espn_player_ingest import load_player_boxscores
 from wnba.data.odds_client import game_market_probabilities
 from wnba.model import margin_model
 from wnba.model.player_model import (
@@ -97,21 +97,15 @@ def cmd_props(args: argparse.Namespace) -> None:
     factors = load_opponent_factors()
     player_id, resolved_name = _resolve_player_id(player_box, args.player)
 
-    try:
-        availability = load_player_availability()
-        out_ids = out_player_ids_for_team(fetch_injuries(), args.opponent)
-    except FileNotFoundError:
-        availability, out_ids = None, set()
-
-    sim = simulate_player_games(
-        player_box, player_id, args.opponent, factors, n_sims=args.sims,
-        out_player_ids=out_ids, availability=availability,
-    )
+    # Injury-aware opponent adjustment exists (model/player_model.py) but is
+    # deliberately NOT wired in here -- backtested and found only a weak,
+    # mostly not-statistically-significant effect (see
+    # validate/player_backtest.py's compare_injury_adjustment), so it stays
+    # off by default rather than shipped as if it were a proven improvement.
+    sim = simulate_player_games(player_box, player_id, args.opponent, factors, n_sims=args.sims)
     n_games = (player_box["player_id"] == player_id).sum()
 
     print(f"\n{resolved_name} vs {args.opponent} -- projections from last {n_games} games ({args.sims} simulations):\n")
-    if out_ids:
-        print(f"  (adjusted for {len(out_ids)} player(s) listed Out for {args.opponent}, where enough history exists)")
     for stat in STAT_COLUMNS:
         label = STAT_LABELS[stat]
         print(f"  {label:<16} mean {sim[stat].mean():5.1f}  median {sim[stat].median():5.1f}  std {sim[stat].std():4.1f}")
@@ -203,13 +197,10 @@ def cmd_betbuilder(args: argparse.Namespace) -> None:
         try:
             player_box = load_player_boxscores()
             factors = load_opponent_factors()
-            try:
-                availability = load_player_availability()
-                injuries = fetch_injuries()
-            except FileNotFoundError:
-                availability, injuries = None, None
+            # Injury-aware opponent adjustment intentionally not wired in
+            # here -- see cmd_props's comment for why.
             chosen_matches = [
-                add_player_prop_legs(m, player_box, factors, bookmakers=bookmakers, availability=availability, injuries=injuries)
+                add_player_prop_legs(m, player_box, factors, bookmakers=bookmakers)
                 for m in chosen_matches
             ]
         except FileNotFoundError:
