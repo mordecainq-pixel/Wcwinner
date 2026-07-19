@@ -130,14 +130,28 @@ def _resolve_player_id(player_box: pd.DataFrame, name: str) -> str | None:
     return matches.iloc[-1]["player_id"]
 
 
-def _prop_leg_candidates(home, away, date, opponent_for_player, player_box, opponent_factors, prop_df) -> list[Leg]:
+def out_player_ids_for_team(injuries: pd.DataFrame, team: str) -> set[str]:
+    """Currently-Out player_ids for `team`, from the live injury report.
+    Only `status == "Out"` counts -- Questionable/Day-To-Day aren't reliable
+    enough to condition a projection on before the game actually happens.
+    Rows with no resolved player_id (a link-parsing miss) are dropped rather
+    than risk a bad match.
+    """
+    out = injuries[(injuries["team"] == team) & (injuries["status"] == "Out") & injuries["player_id"].notna()]
+    return set(out["player_id"])
+
+
+def _prop_leg_candidates(home, away, date, opponent_for_player, player_box, opponent_factors, prop_df, availability=None, out_ids=None) -> list[Leg]:
     legs = []
     for row in prop_df.itertuples(index=False):
         player_id = _resolve_player_id(player_box, row.player_name)
         if player_id is None:
             continue
         try:
-            sim = simulate_player_games(player_box, player_id, opponent_for_player, opponent_factors)
+            sim = simulate_player_games(
+                player_box, player_id, opponent_for_player, opponent_factors,
+                out_player_ids=out_ids, availability=availability,
+            )
         except ValueError:
             continue  # not enough game history for this player yet
         p_over = prob_over(sim, row.stat, row.line)
@@ -152,14 +166,17 @@ def _prop_leg_candidates(home, away, date, opponent_for_player, player_box, oppo
     return legs
 
 
-def _milestone_leg_candidates(home, away, date, opponent_for_player, player_box, opponent_factors, milestone_df) -> list[Leg]:
+def _milestone_leg_candidates(home, away, date, opponent_for_player, player_box, opponent_factors, milestone_df, availability=None, out_ids=None) -> list[Leg]:
     legs = []
     for row in milestone_df.itertuples(index=False):
         player_id = _resolve_player_id(player_box, row.player_name)
         if player_id is None:
             continue
         try:
-            sim = simulate_player_games(player_box, player_id, opponent_for_player, opponent_factors)
+            sim = simulate_player_games(
+                player_box, player_id, opponent_for_player, opponent_factors,
+                out_player_ids=out_ids, availability=availability,
+            )
         except ValueError:
             continue
         model_prob = prob_double_double(sim) if row.stat == "double_double" else prob_triple_double(sim)
@@ -229,11 +246,18 @@ def add_player_prop_legs(
     opponent_factors: pd.DataFrame,
     bookmakers: str | None = None,
     client: OddsAPIClient | None = None,
+    availability: pd.DataFrame | None = None,
+    injuries: pd.DataFrame | None = None,
 ) -> MatchOptions:
     """Fetches and appends player-prop + milestone legs for ONE specific
     match (needs `match.event_id`, set by `gather_match_options`). This is
     the expensive call -- only invoke it for games the user has actually
     selected, not for a whole slate up front.
+
+    `availability` + `injuries` are both optional and default to no
+    adjustment -- pass both to condition each side's projections on the
+    OTHER team's currently-Out rotation players (see
+    model/player_model.py's compute_out_player_adjustment).
     """
     if match.event_id is None:
         return match
@@ -249,12 +273,19 @@ def add_player_prop_legs(
     new_legs = list(match.legs)
     for team, opponent in ((home, away), (away, home)):
         team_players = player_box[player_box["team"] == team]["player_name"].unique()
+        out_ids = out_player_ids_for_team(injuries, opponent) if injuries is not None else None
         if not prop_df.empty:
             team_prop_df = prop_df[prop_df["player_name"].isin(team_players)]
-            new_legs += _prop_leg_candidates(home, away, date, opponent, player_box, opponent_factors, team_prop_df)
+            new_legs += _prop_leg_candidates(
+                home, away, date, opponent, player_box, opponent_factors, team_prop_df,
+                availability=availability, out_ids=out_ids,
+            )
         if not milestone_df.empty:
             team_milestone_df = milestone_df[milestone_df["player_name"].isin(team_players)]
-            new_legs += _milestone_leg_candidates(home, away, date, opponent, player_box, opponent_factors, team_milestone_df)
+            new_legs += _milestone_leg_candidates(
+                home, away, date, opponent, player_box, opponent_factors, team_milestone_df,
+                availability=availability, out_ids=out_ids,
+            )
 
     return MatchOptions(home, away, date, new_legs, event_id=match.event_id)
 

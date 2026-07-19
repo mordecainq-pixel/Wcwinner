@@ -12,12 +12,12 @@ adopted hyperparameter without a backtest to back it up.
 |---|---|
 | Team results + Elo + margin model refit | **Fully automated.** `wnba-predictor refresh` re-pulls every completed game from ESPN's public scoreboard API, recomputes Elo, and refits the margin/total model. |
 | Today's/upcoming schedule | **Fully automated.** `wnba-predictor today [--date YYYY-MM-DD]` pulls the live scoreboard, including in-progress and not-yet-started games. |
-| Player box scores + prop projections | **Automated, opt-in.** `wnba-predictor refresh --players` re-pulls per-player box scores (one HTTP request per game, so it's slow -- ~15 min for a 3-year window) and recomputes opponent "stats allowed" factors. Kept separate from the fast team refresh so a routine refresh doesn't take 15 minutes every time. |
+| Player box scores + prop projections | **Automated, opt-in.** `wnba-predictor refresh --players` re-pulls per-player box scores (one HTTP request per game, so it's slow -- ~15 min for a 3-year window), recomputes opponent "stats allowed" factors, and rebuilds `player_availability.csv` (played/DNP per rostered athlete, from the same fetched box scores -- no extra requests) that the injury-aware adjustment below reads from. Kept separate from the fast team refresh so a routine refresh doesn't take 15 minutes every time. |
 | Betting odds / market comparison | **Fully automated** via The Odds API, both game lines (h2h/spreads/totals) and player props (points/rebounds/assists/threes/PRA/PR/PA/RA/double-double/triple-double). See the cost note below before using this heavily -- player props are NOT cheap. |
-| Injury report | **Fully automated**, unlike `wcwinner`'s manual squad-strength field -- ESPN publishes a real, current, free league-wide injury report (status, injury type, a human-written comment) with no auth needed. `wnba-predictor injuries [--team X]`. Still not fed into the model's predictions quantitatively (see below). |
+| Injury report | **Fully automated**, unlike `wcwinner`'s manual squad-strength field -- ESPN publishes a real, current, free league-wide injury report (status, injury type, a human-written comment) with no auth needed. `wnba-predictor injuries [--team X]`. See below for why it's NOT fed into player-prop projections despite the machinery existing. |
 | First Basket Scorer | **Not implemented.** Would need play-by-play parsing (ESPN's summary endpoint has a separate `plays` field) that hasn't been verified for data quality/coverage yet -- left out rather than shipped as an unvalidated guess. |
 
-**Why injuries aren't fed into the model's predictions despite being automated data:** knowing a player is "Out" is one thing; knowing exactly how many points/win-probability that's worth is another, and that needs its own backtested answer (does subtracting a specific player's recent production and redistributing minutes actually improve predictions?) before it should move a number. For now the report is surfaced for you to factor in yourself, same spirit as `wcwinner`'s manual multiplier -- the difference here is just that fetching the report itself no longer requires you to go find it.
+**Injury-aware opponent adjustment: built, backtested, deliberately NOT live.** `model/player_model.py`'s `compute_out_player_adjustment` exists and works: when a rotation player is ruled Out, it conditions the opponent's stats-allowed factor on REAL history (that team's own past games where the same player actually missed, from `player_availability.csv`'s played/DNP data), shrinking toward "no effect" when there isn't much such history, capped so it can't swing wildly. But `validate/player_backtest.py`'s `compare_injury_adjustment` -- run against the real 2024-2026 dataset, not synthetic data -- found only a weak, mostly not-statistically-significant effect league-wide, and essentially no improvement on the two stats (points, rebounds) that originally motivated it, even after narrowing to only high-minutes players. Real, honest result: the mechanism doesn't clear the bar to be trusted as a default. The code, tests, and `player_availability.csv` data all exist and are usable directly (`simulate_player_games(..., out_player_ids=..., availability=...)`), but the app/CLI/Bet Builder/Value Scan call sites deliberately don't pass those arguments, so live behavior is unaffected.
 
 ## Public deployment (free, no server to run)
 
@@ -27,7 +27,9 @@ adopted hyperparameter without a backtest to back it up.
 
 **The public site does not include Bet Builder or live market comparison.** Both need The Odds API, whose free tier is a single shared 500-credit/month pool -- fine for one person testing locally, not something that survives real public traffic (see the cost note in `betbuilder.py`/`config.py`). Predictions and player-prop projections need no odds data at all, so they stay fully free and uncapped for everyone.
 
-**Admin panel** (visible only to you): data freshness, a manual refresh trigger, and -- since you're already identified as admin at that point -- the Bet Builder tab too, so you don't lose it. Unlocked via a **hidden URL route + password**, not IP: visit `yoursite.streamlit.app/adminlogs` (a real page, not shown in any menu -- `st.Page(..., visibility="hidden")` + `st.navigation(position="hidden")`, so there's no nav widget anywhere for anyone), enter the password, and you're redirected to the normal site with the extra tabs unlocked for that browser session.
+**Admin panel** (visible only to you): data freshness, a manual refresh trigger, and -- since you're already identified as admin at that point -- the Bet Builder and Value Scan tabs too, so you don't lose them. Unlocked via a **hidden URL route + password**, not IP: visit `yoursite.streamlit.app/adminlogs` (a real page, not shown in any menu -- `st.Page(..., visibility="hidden")` + `st.navigation(position="hidden")`, so there's no nav widget anywhere for anyone), enter the password, and you're redirected to the normal site with the extra tabs unlocked for that browser session.
+
+**Value Scan tab** (`wnba/value_scan.py`, admin-only): pick one sportsbook and one or more games, and it pulls that book's real player-prop lines and compares each one to the model's own bootstrap projection -- both the raw gap (e.g. model projects 17.5 points, the book has 15.5) and the proper EV at the book's actual payout odds, ranked by EV since a big gap at bad odds isn't necessarily good value. This is the same expensive per-event Odds-API call as Bet Builder's player props, so it only runs on an explicit "Scan now" click. The result is cached to `data/wnba_admin_cache/value_scan.json` (gitignored, outside the daily-refresh commit path -- see `.github/workflows/wnba_daily_refresh.yml`) so reopening the tab just re-reads the last scan instead of spending credits again; a timestamp shows how stale it is.
 
 IP-based gating was tried first and abandoned: confirmed live that Streamlit Community Cloud proxies requests through a pool of internal servers, so the detected "visitor IP" changed on every single page reload, not just between sessions -- there was never a stable address to match against. The URL+password approach doesn't depend on any network/hosting detail, so it can't fail the same way.
 
@@ -201,7 +203,7 @@ wnba/
   config.py               paths, credentials, tunable model constants
   data/
     espn_ingest.py         historical team results (one request/season)
-    espn_player_ingest.py  historical player box scores (one request/game)
+    espn_player_ingest.py  historical player box scores + availability (one request/game)
     espn_live.py           today's/any date's schedule, team rosters
     espn_injuries.py       live league-wide injury report
     odds_client.py         The Odds API: game lines + player props
@@ -213,6 +215,7 @@ wnba/
     metrics.py, backtest.py       team-model log-loss/Brier vs. naive baseline
     player_backtest.py            player-projection PIT calibration check
   betbuilder.py            game + player-prop parlay builder
+  value_scan.py            admin-only: single-book prop scan vs. model, cached to disk
   visualize.py             graphic prediction/prop/parlay cards
   cli.py                   command-line interface
   app.py                   Streamlit UI (streamlit run wnba/app.py)
@@ -230,5 +233,6 @@ tests/wnba/                pytest suite
 - Series-aware (best-of-N) playoff simulation -- currently no bracket/series
   Monte Carlo, unlike `wcwinner`'s tournament simulator.
 - First Basket Scorer (needs play-by-play data verification first).
-- Injuries are surfaced but not fed into the model's predictions
-  quantitatively (see "Why injuries aren't fed into the model" above).
+- Injury-aware opponent adjustment: built and backtested (see above), but
+  the real result was weak enough that it's intentionally left disconnected
+  from live projections rather than shipped as a proven improvement.

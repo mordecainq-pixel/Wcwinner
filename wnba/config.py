@@ -137,6 +137,22 @@ PLAYER_MIN_GAMES_FOR_PROJECTION = 3
 PLAYER_OPPONENT_SHRINKAGE_K = 30  # games faced before an opponent's "stats allowed" factor is trusted fully
 PLAYER_SIM_COUNT = 10000
 
+# --- Player prop injury-aware opponent adjustment ---
+# Deliberately NOT an assumed point value for a given absence. When a
+# rotation player is ruled Out, the opponent's stats-allowed factor is
+# adjusted using ONLY that team's own historical games where the SAME
+# player actually missed the game (player_availability.csv's played=False
+# rows), shrunk toward "no adjustment" (1.0) when there isn't much such
+# history yet -- see model/player_model.py's compute_out_player_adjustment.
+# Validated in validate/player_backtest.py's compare_injury_adjustment
+# (PIT calibration, baseline vs. injury-aware, restricted to real held-out
+# games with a real opponent absence) before being wired into the live
+# app/CLI/betbuilder projections.
+PLAYER_INJURY_MIN_MINUTES = 15.0  # avg minutes for an out player to count as "rotation" (filters fringe/two-way scratches)
+PLAYER_INJURY_MIN_GAMES = PLAYER_MIN_GAMES_FOR_PROJECTION  # min games on file for that player+team before trusting their minutes average at all
+PLAYER_INJURY_SHRINKAGE_K = 8  # games missed before a specific player's absence-effect is trusted fully (much rarer than "games faced", so smaller K than PLAYER_OPPONENT_SHRINKAGE_K)
+PLAYER_INJURY_FACTOR_BOUNDS = (0.6, 1.6)  # clip on the COMBINED multiplier across simultaneous absences, so a couple of noisy small-sample estimates can't compound into an extreme swing
+
 # --- Public deployment / admin panel ---
 # The public site is meant to run unattended (GitHub Actions refreshes data
 # daily and commits it back; Streamlit Community Cloud redeploys on every

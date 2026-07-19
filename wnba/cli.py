@@ -97,6 +97,11 @@ def cmd_props(args: argparse.Namespace) -> None:
     factors = load_opponent_factors()
     player_id, resolved_name = _resolve_player_id(player_box, args.player)
 
+    # Injury-aware opponent adjustment exists (model/player_model.py) but is
+    # deliberately NOT wired in here -- backtested and found only a weak,
+    # mostly not-statistically-significant effect (see
+    # validate/player_backtest.py's compare_injury_adjustment), so it stays
+    # off by default rather than shipped as if it were a proven improvement.
     sim = simulate_player_games(player_box, player_id, args.opponent, factors, n_sims=args.sims)
     n_games = (player_box["player_id"] == player_id).sum()
 
@@ -192,7 +197,12 @@ def cmd_betbuilder(args: argparse.Namespace) -> None:
         try:
             player_box = load_player_boxscores()
             factors = load_opponent_factors()
-            chosen_matches = [add_player_prop_legs(m, player_box, factors, bookmakers=bookmakers) for m in chosen_matches]
+            # Injury-aware opponent adjustment intentionally not wired in
+            # here -- see cmd_props's comment for why.
+            chosen_matches = [
+                add_player_prop_legs(m, player_box, factors, bookmakers=bookmakers)
+                for m in chosen_matches
+            ]
         except FileNotFoundError:
             print("\n(No player box-score data yet -- run `refresh --players` for prop legs. Continuing with game lines only.)")
 

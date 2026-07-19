@@ -1,4 +1,4 @@
-from wnba.data.espn_player_ingest import _parse_athlete_stats, _parse_boxscore
+from wnba.data.espn_player_ingest import _parse_athlete_stats, _parse_availability, _parse_boxscore
 
 _KEYS = [
     "minutes", "points", "fieldGoalsMade-fieldGoalsAttempted",
@@ -81,3 +81,18 @@ def test_parse_boxscore_skips_dnp_players():
     names = {r["player_name"] for r in rows}
     assert "Played" in names
     assert "Inactive" not in names
+
+
+def test_parse_availability_includes_dnp_players_with_played_false():
+    home_athletes = [
+        _athlete("Played", ["30", "20", "8-15", "1-3", "3-4", "5", "3", "2", "1", "0", "1", "4", "2", "+5"], player_id="10"),
+        _athlete("Inactive", [], starter=False, player_id="11"),
+    ]
+    rows = _parse_availability(_summary(home_athletes, []), event_id="123", date="2025-07-01", season=2025, is_playoff=False)
+    by_name = {r["player_name"]: r for r in rows}
+
+    assert by_name["Played"]["played"] is True
+    assert by_name["Inactive"]["played"] is False
+    assert by_name["Played"]["team"] == "New York Liberty"
+    assert by_name["Played"]["opponent"] == "Indiana Fever"
+    assert by_name["Inactive"]["player_id"] == "11"
