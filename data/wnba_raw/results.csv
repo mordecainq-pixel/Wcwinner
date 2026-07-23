@@ -3399,3 +3399,9 @@ event_id,date,home_team,away_team,home_score,away_score,is_playoff,neutral,seaso
 401892393,2026-07-21,Dallas Wings,New York Liberty,98,99,False,False,2026
 401857084,2026-07-21,Golden State Valkyries,Washington Mystics,82,90,False,False,2026
 401857085,2026-07-21,Seattle Storm,Minnesota Lynx,102,105,False,False,2026
+401857086,2026-07-22,Los Angeles Sparks,Phoenix Mercury,82,86,False,False,2026
+401857087,2026-07-22,Seattle Storm,Minnesota Lynx,76,86,False,False,2026
+401857088,2026-07-22,New York Liberty,Chicago Sky,95,94,False,False,2026
+401857089,2026-07-22,Washington Mystics,Las Vegas Aces,100,99,False,False,2026
+401857090,2026-07-23,Indiana Fever,Connecticut Sun,123,88,False,False,2026
+401857091,2026-07-23,Portland Fire,Dallas Wings,97,101,False,False,2026
