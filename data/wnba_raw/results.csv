@@ -3405,3 +3405,8 @@ event_id,date,home_team,away_team,home_score,away_score,is_playoff,neutral,seaso
 401857089,2026-07-22,Washington Mystics,Las Vegas Aces,100,99,False,False,2026
 401857090,2026-07-23,Indiana Fever,Connecticut Sun,123,88,False,False,2026
 401857091,2026-07-23,Portland Fire,Dallas Wings,97,101,False,False,2026
+401857092,2026-07-28,Washington Mystics,Connecticut Sun,92,84,False,False,2026
+401857093,2026-07-29,Minnesota Lynx,Toronto Tempo,100,93,False,False,2026
+401857094,2026-07-29,Seattle Storm,Indiana Fever,95,105,False,False,2026
+401857095,2026-07-29,Las Vegas Aces,Portland Fire,98,83,False,False,2026
+401857096,2026-07-29,Los Angeles Sparks,New York Liberty,109,113,False,False,2026
