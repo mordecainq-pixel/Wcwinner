@@ -3441,3 +3441,7 @@ event_id,date,home_team,away_team,home_score,away_score,is_playoff,neutral,seaso
 401857125,2026-08-08,Minnesota Lynx,Las Vegas Aces,98,87,False,False,2026
 401857126,2026-08-08,Chicago Sky,Indiana Fever,86,90,False,False,2026
 401857127,2026-08-09,Portland Fire,Seattle Storm,100,93,False,False,2026
+401857128,2026-08-09,New York Liberty,Las Vegas Aces,111,71,False,False,2026
+401857129,2026-08-09,Washington Mystics,Phoenix Mercury,95,75,False,False,2026
+401857130,2026-08-09,Minnesota Lynx,Dallas Wings,103,90,False,False,2026
+401857131,2026-08-09,Los Angeles Sparks,Golden State Valkyries,78,84,False,False,2026
