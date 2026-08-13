@@ -3450,3 +3450,6 @@ event_id,date,home_team,away_team,home_score,away_score,is_playoff,neutral,seaso
 401857134,2026-08-11,Indiana Fever,New York Liberty,106,92,False,False,2026
 401857135,2026-08-12,Las Vegas Aces,Washington Mystics,86,76,False,False,2026
 401857136,2026-08-12,Los Angeles Sparks,Phoenix Mercury,87,94,False,True,2026
+401857137,2026-08-13,Dallas Wings,Toronto Tempo,94,88,False,False,2026
+401857138,2026-08-13,Golden State Valkyries,Chicago Sky,91,71,False,False,2026
+401857139,2026-08-13,Portland Fire,Minnesota Lynx,81,85,False,False,2026
