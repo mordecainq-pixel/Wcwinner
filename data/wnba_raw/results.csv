@@ -3456,3 +3456,5 @@ event_id,date,home_team,away_team,home_score,away_score,is_playoff,neutral,seaso
 401857140,2026-08-13,Connecticut Sun,Atlanta Dream,69,104,False,False,2026
 401857141,2026-08-14,New York Liberty,Los Angeles Sparks,85,81,False,False,2026
 401857142,2026-08-14,Las Vegas Aces,Washington Mystics,83,76,False,False,2026
+401857143,2026-08-14,Indiana Fever,Dallas Wings,98,87,False,False,2026
+401857144,2026-08-15,Seattle Storm,Portland Fire,82,84,False,False,2026
