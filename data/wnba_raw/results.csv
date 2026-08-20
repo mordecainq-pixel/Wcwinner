@@ -3469,3 +3469,5 @@ event_id,date,home_team,away_team,home_score,away_score,is_playoff,neutral,seaso
 401857153,2026-08-18,Toronto Tempo,Indiana Fever,95,101,False,False,2026
 401857154,2026-08-19,Chicago Sky,New York Liberty,93,86,False,False,2026
 401857155,2026-08-19,Las Vegas Aces,Atlanta Dream,82,97,False,False,2026
+401857156,2026-08-19,Washington Mystics,Toronto Tempo,93,82,False,False,2026
+401857157,2026-08-20,Golden State Valkyries,Minnesota Lynx,66,77,False,False,2026
