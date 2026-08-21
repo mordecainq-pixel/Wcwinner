@@ -3471,3 +3471,6 @@ event_id,date,home_team,away_team,home_score,away_score,is_playoff,neutral,seaso
 401857155,2026-08-19,Las Vegas Aces,Atlanta Dream,82,97,False,False,2026
 401857156,2026-08-19,Washington Mystics,Toronto Tempo,93,82,False,False,2026
 401857157,2026-08-20,Golden State Valkyries,Minnesota Lynx,66,77,False,False,2026
+401857158,2026-08-21,Dallas Wings,Indiana Fever,91,85,False,False,2026
+401857159,2026-08-21,Las Vegas Aces,Connecticut Sun,101,78,False,False,2026
+401857160,2026-08-21,Los Angeles Sparks,Atlanta Dream,88,124,False,False,2026
