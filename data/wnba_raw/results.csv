@@ -3480,3 +3480,9 @@ event_id,date,home_team,away_team,home_score,away_score,is_playoff,neutral,seaso
 401857164,2026-08-22,New York Liberty,Indiana Fever,109,102,False,False,2026
 401857165,2026-08-23,Los Angeles Sparks,Connecticut Sun,77,68,False,False,2026
 401857166,2026-08-23,Phoenix Mercury,Atlanta Dream,89,99,False,False,2026
+401857167,2026-08-23,Dallas Wings,Seattle Storm,92,70,False,False,2026
+401857168,2026-08-23,Chicago Sky,Indiana Fever,90,113,False,False,2026
+401857169,2026-08-23,Portland Fire,Washington Mystics,100,105,False,False,2026
+401857170,2026-08-23,Toronto Tempo,Las Vegas Aces,78,88,False,False,2026
+401857171,2026-08-25,Minnesota Lynx,Golden State Valkyries,66,80,False,False,2026
+401857172,2026-08-25,Los Angeles Sparks,Atlanta Dream,71,78,False,False,2026
