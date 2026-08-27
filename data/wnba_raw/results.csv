@@ -3489,3 +3489,5 @@ event_id,date,home_team,away_team,home_score,away_score,is_playoff,neutral,seaso
 401857173,2026-08-25,Connecticut Sun,Chicago Sky,87,81,False,False,2026
 401857174,2026-08-26,Dallas Wings,Portland Fire,96,78,False,False,2026
 401857175,2026-08-26,Phoenix Mercury,Washington Mystics,84,94,False,False,2026
+401857176,2026-08-26,Connecticut Sun,Golden State Valkyries,64,89,False,False,2026
+401857177,2026-08-27,Seattle Storm,Toronto Tempo,90,78,False,False,2026
