@@ -3491,3 +3491,5 @@ event_id,date,home_team,away_team,home_score,away_score,is_playoff,neutral,seaso
 401857175,2026-08-26,Phoenix Mercury,Washington Mystics,84,94,False,False,2026
 401857176,2026-08-26,Connecticut Sun,Golden State Valkyries,64,89,False,False,2026
 401857177,2026-08-27,Seattle Storm,Toronto Tempo,90,78,False,False,2026
+401857178,2026-08-28,New York Liberty,Golden State Valkyries,60,79,False,False,2026
+401857179,2026-08-28,Phoenix Mercury,Washington Mystics,73,80,False,False,2026
