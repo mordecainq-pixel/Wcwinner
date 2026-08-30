@@ -3497,3 +3497,5 @@ event_id,date,home_team,away_team,home_score,away_score,is_playoff,neutral,seaso
 401857181,2026-08-28,Indiana Fever,Connecticut Sun,111,91,False,False,2026
 401857182,2026-08-29,Las Vegas Aces,Toronto Tempo,93,73,False,False,2026
 401857183,2026-08-29,Los Angeles Sparks,Washington Mystics,88,82,False,False,2026
+401857184,2026-08-29,New York Liberty,Chicago Sky,85,66,False,False,2026
+401857185,2026-08-30,Phoenix Mercury,Toronto Tempo,101,69,False,False,2026
