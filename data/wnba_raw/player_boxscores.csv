@@ -8711,7 +8711,7 @@ event_id,date,season,is_playoff,team,opponent,player_id,player_name,position,sta
 401736263,2025-07-24,2025,False,Connecticut Sun,Los Angeles Sparks,3058908,Lindsay Allen,G,False,11.0,2.0,0.0,1.0,0.0,0.0,2.0,2.0,2.0,3.0,1.0,1.0,1.0,0.0,2.0,0.0,-4.0
 401736263,2025-07-24,2025,False,Connecticut Sun,Los Angeles Sparks,3904576,Marina Mabrey,G,False,26.0,7.0,2.0,12.0,2.0,8.0,1.0,2.0,2.0,3.0,3.0,2.0,0.0,0.0,2.0,2.0,-11.0
 401736263,2025-07-24,2025,False,Connecticut Sun,Los Angeles Sparks,4432865,Jacy Sheldon,G,False,22.0,5.0,1.0,8.0,1.0,3.0,2.0,2.0,2.0,1.0,0.0,0.0,0.0,1.0,1.0,3.0,-21.0
-401736263,2025-07-24,2025,False,Connecticut Sun,Los Angeles Sparks,5279789,Mamignan Toure,G,False,6.0,0.0,0.0,2.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,2.0,4.0
+401736263,2025-07-24,2025,False,Connecticut Sun,Los Angeles Sparks,5279789,Migna Toure,G,False,6.0,0.0,0.0,2.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,2.0,4.0
 401736264,2025-07-24,2025,False,Las Vegas Aces,Indiana Fever,4398776,NaLyssa Smith,F,True,26.0,10.0,4.0,8.0,0.0,1.0,2.0,4.0,10.0,2.0,3.0,1.0,0.0,3.0,7.0,4.0,-3.0
 401736264,2025-07-24,2025,False,Las Vegas Aces,Indiana Fever,3149391,A'ja Wilson,C,True,30.0,20.0,7.0,17.0,0.0,1.0,6.0,6.0,6.0,2.0,5.0,3.0,1.0,0.0,6.0,4.0,2.0
 401736264,2025-07-24,2025,False,Las Vegas Aces,Indiana Fever,2529122,Chelsea Gray,G,True,33.0,9.0,3.0,9.0,0.0,2.0,3.0,3.0,3.0,4.0,0.0,1.0,1.0,0.0,3.0,2.0,-10.0
@@ -8866,7 +8866,7 @@ event_id,date,season,is_playoff,team,opponent,player_id,player_name,position,sta
 401736272,2025-07-27,2025,False,Connecticut Sun,Golden State Valkyries,3058908,Lindsay Allen,G,False,15.0,3.0,1.0,1.0,1.0,1.0,0.0,0.0,0.0,4.0,2.0,0.0,0.0,0.0,0.0,0.0,11.0
 401736272,2025-07-27,2025,False,Connecticut Sun,Golden State Valkyries,4432865,Jacy Sheldon,G,False,19.0,13.0,5.0,7.0,3.0,4.0,0.0,0.0,3.0,2.0,1.0,2.0,1.0,0.0,3.0,2.0,20.0
 401736272,2025-07-27,2025,False,Connecticut Sun,Golden State Valkyries,5208981,Leila Lacan,G,False,21.0,8.0,4.0,7.0,0.0,1.0,0.0,0.0,2.0,2.0,0.0,6.0,0.0,1.0,1.0,2.0,14.0
-401736272,2025-07-27,2025,False,Connecticut Sun,Golden State Valkyries,5279789,Mamignan Toure,G,False,5.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+401736272,2025-07-27,2025,False,Connecticut Sun,Golden State Valkyries,5279789,Migna Toure,G,False,5.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
 401736269,2025-07-27,2025,False,Indiana Fever,Chicago Sky,2529130,Natasha Howard,F,True,12.0,0.0,0.0,5.0,0.0,0.0,0.0,0.0,0.0,3.0,1.0,1.0,0.0,0.0,0.0,1.0,-10.0
 401736269,2025-07-27,2025,False,Indiana Fever,Chicago Sky,4432831,Aliyah Boston,C,True,35.0,14.0,5.0,9.0,0.0,1.0,4.0,4.0,11.0,6.0,3.0,2.0,2.0,2.0,9.0,2.0,15.0
 401736269,2025-07-27,2025,False,Indiana Fever,Chicago Sky,3142191,Kelsey Mitchell,G,True,30.0,35.0,12.0,19.0,7.0,10.0,4.0,4.0,2.0,6.0,2.0,3.0,0.0,0.0,2.0,2.0,25.0
@@ -8964,7 +8964,7 @@ event_id,date,season,is_playoff,team,opponent,player_id,player_name,position,sta
 401736276,2025-07-28,2025,False,Connecticut Sun,Seattle Storm,3058908,Lindsay Allen,G,False,7.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,0.0,0.0,0.0,0.0,1.0,-11.0
 401736276,2025-07-28,2025,False,Connecticut Sun,Seattle Storm,4432865,Jacy Sheldon,G,False,26.0,11.0,4.0,6.0,3.0,3.0,0.0,0.0,3.0,2.0,1.0,0.0,0.0,0.0,3.0,3.0,-1.0
 401736276,2025-07-28,2025,False,Connecticut Sun,Seattle Storm,5208981,Leila Lacan,G,False,22.0,9.0,2.0,6.0,1.0,2.0,4.0,4.0,2.0,4.0,2.0,2.0,0.0,0.0,2.0,3.0,-6.0
-401736276,2025-07-28,2025,False,Connecticut Sun,Seattle Storm,5279789,Mamignan Toure,G,False,6.0,0.0,0.0,1.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,1.0,0.0,0.0,0.0,1.0,4.0
+401736276,2025-07-28,2025,False,Connecticut Sun,Seattle Storm,5279789,Migna Toure,G,False,6.0,0.0,0.0,1.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,1.0,0.0,0.0,0.0,1.0,4.0
 401736278,2025-07-29,2025,False,Golden State Valkyries,Atlanta Dream,3142255,Monique Billings,F,True,9.0,3.0,1.0,2.0,0.0,0.0,1.0,2.0,1.0,0.0,0.0,0.0,1.0,1.0,0.0,1.0,1.0
 401736278,2025-07-29,2025,False,Golden State Valkyries,Atlanta Dream,4790264,Janelle Salaun,F,True,23.0,6.0,3.0,8.0,0.0,4.0,0.0,0.0,1.0,1.0,1.0,0.0,0.0,0.0,1.0,4.0,-8.0
 401736278,2025-07-29,2025,False,Golden State Valkyries,Atlanta Dream,2569044,Temi Fagbenle,C,True,24.0,4.0,2.0,4.0,0.0,1.0,0.0,0.0,5.0,2.0,0.0,0.0,1.0,2.0,3.0,4.0,-2.0
@@ -9239,7 +9239,7 @@ event_id,date,season,is_playoff,team,opponent,player_id,player_name,position,sta
 401736292,2025-08-03,2025,False,Connecticut Sun,New York Liberty,3058908,Lindsay Allen,G,False,8.0,0.0,0.0,1.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,2.0,-9.0
 401736292,2025-08-03,2025,False,Connecticut Sun,New York Liberty,4432865,Jacy Sheldon,G,False,18.0,4.0,2.0,4.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0,3.0,0.0,0.0,0.0,1.0,-8.0
 401736292,2025-08-03,2025,False,Connecticut Sun,New York Liberty,5208981,Leila Lacan,G,False,16.0,4.0,2.0,5.0,0.0,2.0,0.0,0.0,2.0,1.0,2.0,3.0,0.0,2.0,0.0,3.0,-11.0
-401736292,2025-08-03,2025,False,Connecticut Sun,New York Liberty,5279789,Mamignan Toure,G,False,6.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,2.0,-5.0
+401736292,2025-08-03,2025,False,Connecticut Sun,New York Liberty,5279789,Migna Toure,G,False,6.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,2.0,-5.0
 401736291,2025-08-03,2025,False,Washington Mystics,Atlanta Dream,4898384,Kiki Iriafen,F,True,27.0,22.0,9.0,15.0,0.0,1.0,4.0,4.0,5.0,3.0,1.0,3.0,0.0,3.0,2.0,3.0,-3.0
 401736291,2025-08-03,2025,False,Washington Mystics,Atlanta Dream,4398911,Shakira Austin,C,True,29.0,16.0,7.0,11.0,0.0,2.0,2.0,2.0,3.0,2.0,7.0,3.0,1.0,0.0,3.0,4.0,-18.0
 401736291,2025-08-03,2025,False,Washington Mystics,Atlanta Dream,2988756,Brittney Sykes,G,True,26.0,6.0,3.0,9.0,0.0,0.0,0.0,1.0,2.0,3.0,2.0,3.0,0.0,0.0,2.0,2.0,-9.0
@@ -9345,7 +9345,7 @@ event_id,date,season,is_playoff,team,opponent,player_id,player_name,position,sta
 401736299,2025-08-06,2025,False,Connecticut Sun,Phoenix Mercury,3058908,Lindsay Allen,G,False,5.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,6.0
 401736299,2025-08-06,2025,False,Connecticut Sun,Phoenix Mercury,4432865,Jacy Sheldon,G,False,21.0,7.0,2.0,6.0,1.0,4.0,2.0,2.0,4.0,2.0,0.0,1.0,0.0,1.0,3.0,2.0,-7.0
 401736299,2025-08-06,2025,False,Connecticut Sun,Phoenix Mercury,4433514,Saniya Rivers,G,False,13.0,2.0,1.0,4.0,0.0,2.0,0.0,0.0,2.0,1.0,1.0,0.0,1.0,0.0,2.0,1.0,-19.0
-401736299,2025-08-06,2025,False,Connecticut Sun,Phoenix Mercury,5279789,Mamignan Toure,G,False,7.0,2.0,1.0,3.0,0.0,2.0,0.0,0.0,1.0,1.0,1.0,2.0,0.0,0.0,1.0,2.0,1.0
+401736299,2025-08-06,2025,False,Connecticut Sun,Phoenix Mercury,5279789,Migna Toure,G,False,7.0,2.0,1.0,3.0,0.0,2.0,0.0,0.0,1.0,1.0,1.0,2.0,0.0,0.0,1.0,2.0,1.0
 401736299,2025-08-06,2025,False,Phoenix Mercury,Connecticut Sun,2529140,Alyssa Thomas,F,True,32.0,13.0,3.0,7.0,0.0,0.0,7.0,8.0,12.0,12.0,4.0,3.0,0.0,2.0,10.0,3.0,20.0
 401736299,2025-08-06,2025,False,Phoenix Mercury,Connecticut Sun,4068042,Natasha Mack,F,True,8.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,4.0,3.0,0.0,0.0,1.0,1.0,3.0,0.0,11.0
 401736299,2025-08-06,2025,False,Phoenix Mercury,Connecticut Sun,4281929,Satou Sabally,F,True,29.0,23.0,9.0,12.0,1.0,2.0,4.0,5.0,6.0,1.0,4.0,2.0,1.0,1.0,5.0,2.0,18.0
@@ -9456,7 +9456,7 @@ event_id,date,season,is_playoff,team,opponent,player_id,player_name,position,sta
 401736303,2025-08-08,2025,False,Connecticut Sun,Los Angeles Sparks,2529125,Haley Peters,F,False,2.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,-1.0
 401736303,2025-08-08,2025,False,Connecticut Sun,Los Angeles Sparks,4398966,Olivia Nelson-Ododa,C,False,21.0,8.0,2.0,3.0,0.0,0.0,4.0,6.0,6.0,1.0,2.0,0.0,1.0,3.0,3.0,3.0,2.0
 401736303,2025-08-08,2025,False,Connecticut Sun,Los Angeles Sparks,4433514,Saniya Rivers,G,False,22.0,7.0,3.0,5.0,1.0,2.0,0.0,0.0,1.0,3.0,1.0,2.0,0.0,1.0,0.0,2.0,-8.0
-401736303,2025-08-08,2025,False,Connecticut Sun,Los Angeles Sparks,5279789,Mamignan Toure,G,False,9.0,6.0,2.0,3.0,2.0,2.0,0.0,0.0,0.0,1.0,0.0,1.0,0.0,0.0,0.0,1.0,2.0
+401736303,2025-08-08,2025,False,Connecticut Sun,Los Angeles Sparks,5279789,Migna Toure,G,False,9.0,6.0,2.0,3.0,2.0,2.0,0.0,0.0,0.0,1.0,0.0,1.0,0.0,0.0,0.0,1.0,2.0
 401736303,2025-08-08,2025,False,Los Angeles Sparks,Connecticut Sun,2566106,Dearica Hamby,F,True,24.0,21.0,8.0,11.0,0.0,0.0,5.0,6.0,5.0,4.0,2.0,0.0,0.0,1.0,4.0,4.0,11.0
 401736303,2025-08-08,2025,False,Los Angeles Sparks,Connecticut Sun,3142010,Azura Stevens,F,True,32.0,10.0,3.0,9.0,1.0,7.0,3.0,3.0,7.0,1.0,2.0,1.0,2.0,0.0,7.0,2.0,16.0
 401736303,2025-08-08,2025,False,Los Angeles Sparks,Connecticut Sun,4433630,Rickea Jackson,F,True,29.0,20.0,6.0,12.0,3.0,5.0,5.0,5.0,1.0,2.0,2.0,0.0,0.0,1.0,0.0,5.0,8.0
@@ -9645,7 +9645,7 @@ event_id,date,season,is_playoff,team,opponent,player_id,player_name,position,sta
 401736314,2025-08-11,2025,False,Connecticut Sun,Las Vegas Aces,4398966,Olivia Nelson-Ododa,C,False,15.0,6.0,3.0,5.0,0.0,0.0,0.0,0.0,3.0,0.0,0.0,0.0,0.0,2.0,1.0,3.0,5.0
 401736314,2025-08-11,2025,False,Connecticut Sun,Las Vegas Aces,3058908,Lindsay Allen,G,False,5.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
 401736314,2025-08-11,2025,False,Connecticut Sun,Las Vegas Aces,4433514,Saniya Rivers,G,False,28.0,17.0,7.0,10.0,2.0,4.0,1.0,1.0,1.0,4.0,2.0,3.0,1.0,0.0,1.0,1.0,7.0
-401736314,2025-08-11,2025,False,Connecticut Sun,Las Vegas Aces,5279789,Mamignan Toure,G,False,2.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,-7.0
+401736314,2025-08-11,2025,False,Connecticut Sun,Las Vegas Aces,5279789,Migna Toure,G,False,2.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,-7.0
 401736314,2025-08-11,2025,False,Las Vegas Aces,Connecticut Sun,4398776,NaLyssa Smith,F,True,22.0,6.0,2.0,5.0,0.0,1.0,2.0,5.0,6.0,0.0,2.0,1.0,0.0,1.0,5.0,2.0,8.0
 401736314,2025-08-11,2025,False,Las Vegas Aces,Connecticut Sun,4433633,Kierstan Bell,F,True,11.0,3.0,1.0,3.0,1.0,3.0,0.0,0.0,1.0,1.0,1.0,0.0,0.0,0.0,1.0,0.0,12.0
 401736314,2025-08-11,2025,False,Las Vegas Aces,Connecticut Sun,3149391,A'ja Wilson,C,True,37.0,32.0,13.0,25.0,0.0,1.0,6.0,6.0,20.0,5.0,6.0,2.0,0.0,7.0,13.0,2.0,17.0
@@ -9680,7 +9680,7 @@ event_id,date,season,is_playoff,team,opponent,player_id,player_name,position,sta
 401736315,2025-08-12,2025,False,Connecticut Sun,Golden State Valkyries,2529125,Haley Peters,F,False,7.0,0.0,0.0,1.0,0.0,1.0,0.0,0.0,3.0,0.0,0.0,1.0,0.0,1.0,2.0,3.0,4.0
 401736315,2025-08-12,2025,False,Connecticut Sun,Golden State Valkyries,4433408,Aaliyah Edwards,F,False,18.0,8.0,2.0,6.0,0.0,0.0,4.0,6.0,5.0,0.0,3.0,0.0,2.0,3.0,2.0,3.0,1.0
 401736315,2025-08-12,2025,False,Connecticut Sun,Golden State Valkyries,4433514,Saniya Rivers,G,False,29.0,9.0,4.0,7.0,1.0,2.0,0.0,0.0,5.0,1.0,1.0,2.0,1.0,0.0,5.0,0.0,-7.0
-401736315,2025-08-12,2025,False,Connecticut Sun,Golden State Valkyries,5279789,Mamignan Toure,G,False,13.0,3.0,1.0,3.0,1.0,2.0,0.0,0.0,0.0,2.0,1.0,0.0,0.0,0.0,0.0,2.0,6.0
+401736315,2025-08-12,2025,False,Connecticut Sun,Golden State Valkyries,5279789,Migna Toure,G,False,13.0,3.0,1.0,3.0,1.0,2.0,0.0,0.0,0.0,2.0,1.0,0.0,0.0,0.0,0.0,2.0,6.0
 401736315,2025-08-12,2025,False,Golden State Valkyries,Connecticut Sun,4257500,Cecilia Zandalasini,F,True,32.0,17.0,6.0,14.0,3.0,8.0,2.0,3.0,4.0,2.0,2.0,0.0,0.0,0.0,4.0,2.0,21.0
 401736315,2025-08-12,2025,False,Golden State Valkyries,Connecticut Sun,4790264,Janelle Salaun,F,True,27.0,16.0,6.0,10.0,4.0,7.0,0.0,0.0,1.0,2.0,1.0,0.0,0.0,1.0,0.0,3.0,13.0
 401736315,2025-08-12,2025,False,Golden State Valkyries,Connecticut Sun,2569044,Temi Fagbenle,C,True,21.0,6.0,3.0,6.0,0.0,1.0,0.0,0.0,9.0,1.0,1.0,1.0,1.0,3.0,6.0,2.0,15.0
@@ -9748,7 +9748,7 @@ event_id,date,season,is_playoff,team,opponent,player_id,player_name,position,sta
 401736318,2025-08-13,2025,False,Connecticut Sun,Chicago Sky,4398966,Olivia Nelson-Ododa,C,False,19.0,8.0,4.0,4.0,0.0,0.0,0.0,2.0,3.0,2.0,1.0,3.0,2.0,2.0,1.0,2.0,4.0
 401736318,2025-08-13,2025,False,Connecticut Sun,Chicago Sky,3058908,Lindsay Allen,G,False,10.0,2.0,1.0,1.0,0.0,0.0,0.0,0.0,1.0,1.0,0.0,0.0,0.0,1.0,0.0,2.0,3.0
 401736318,2025-08-13,2025,False,Connecticut Sun,Chicago Sky,4433514,Saniya Rivers,G,False,32.0,8.0,3.0,8.0,1.0,2.0,1.0,1.0,3.0,6.0,0.0,3.0,2.0,1.0,2.0,2.0,5.0
-401736318,2025-08-13,2025,False,Connecticut Sun,Chicago Sky,5279789,Mamignan Toure,G,False,3.0,0.0,0.0,2.0,0.0,2.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,-1.0
+401736318,2025-08-13,2025,False,Connecticut Sun,Chicago Sky,5279789,Migna Toure,G,False,3.0,0.0,0.0,2.0,0.0,2.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,-1.0
 401736319,2025-08-13,2025,False,Golden State Valkyries,Washington Mystics,4257500,Cecilia Zandalasini,F,True,35.0,20.0,7.0,10.0,6.0,8.0,0.0,0.0,7.0,4.0,1.0,0.0,0.0,1.0,6.0,0.0,18.0
 401736319,2025-08-13,2025,False,Golden State Valkyries,Washington Mystics,4790264,Janelle Salaun,F,True,29.0,11.0,5.0,9.0,1.0,3.0,0.0,0.0,4.0,1.0,3.0,1.0,0.0,1.0,3.0,2.0,2.0
 401736319,2025-08-13,2025,False,Golden State Valkyries,Washington Mystics,2569044,Temi Fagbenle,C,True,14.0,2.0,1.0,2.0,0.0,0.0,0.0,0.0,0.0,1.0,2.0,0.0,0.0,0.0,0.0,2.0,-5.0
@@ -10287,7 +10287,7 @@ event_id,date,season,is_playoff,team,opponent,player_id,player_name,position,sta
 401736348,2025-08-23,2025,False,Connecticut Sun,Chicago Sky,4433408,Aaliyah Edwards,F,False,16.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,3.0,1.0,0.0,1.0,2.0,1.0,2.0,0.0,0.0
 401736348,2025-08-23,2025,False,Connecticut Sun,Chicago Sky,4398966,Olivia Nelson-Ododa,C,False,8.0,0.0,0.0,2.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,-3.0
 401736348,2025-08-23,2025,False,Connecticut Sun,Chicago Sky,4433514,Saniya Rivers,G,False,27.0,13.0,4.0,10.0,2.0,4.0,3.0,4.0,3.0,3.0,0.0,3.0,0.0,1.0,2.0,1.0,2.0
-401736348,2025-08-23,2025,False,Connecticut Sun,Chicago Sky,5279789,Mamignan Toure,G,False,4.0,2.0,1.0,2.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0
+401736348,2025-08-23,2025,False,Connecticut Sun,Chicago Sky,5279789,Migna Toure,G,False,4.0,2.0,1.0,2.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0
 401736348,2025-08-23,2025,False,Chicago Sky,Connecticut Sun,4282173,Michaela Onyenwere,F,True,13.0,3.0,1.0,2.0,1.0,1.0,0.0,2.0,0.0,2.0,0.0,0.0,0.0,0.0,0.0,1.0,-10.0
 401736348,2025-08-23,2025,False,Chicago Sky,Connecticut Sun,4433402,Angel Reese,F,True,31.0,11.0,5.0,10.0,0.0,0.0,1.0,4.0,11.0,5.0,2.0,0.0,0.0,6.0,5.0,3.0,-9.0
 401736348,2025-08-23,2025,False,Chicago Sky,Connecticut Sun,4433405,Kamilla Cardoso,C,True,34.0,18.0,7.0,14.0,0.0,0.0,4.0,6.0,7.0,5.0,6.0,0.0,0.0,1.0,6.0,3.0,-18.0
@@ -10362,7 +10362,7 @@ event_id,date,season,is_playoff,team,opponent,player_id,player_name,position,sta
 401736352,2025-08-25,2025,False,Connecticut Sun,New York Liberty,4433408,Aaliyah Edwards,F,False,15.0,2.0,0.0,2.0,0.0,0.0,2.0,2.0,4.0,2.0,1.0,0.0,0.0,2.0,2.0,2.0,-2.0
 401736352,2025-08-25,2025,False,Connecticut Sun,New York Liberty,4398966,Olivia Nelson-Ododa,C,False,12.0,2.0,1.0,4.0,0.0,0.0,0.0,0.0,2.0,0.0,1.0,1.0,0.0,1.0,1.0,1.0,5.0
 401736352,2025-08-25,2025,False,Connecticut Sun,New York Liberty,5208981,Leila Lacan,G,False,31.0,22.0,9.0,15.0,2.0,3.0,2.0,2.0,3.0,3.0,4.0,2.0,0.0,1.0,2.0,5.0,3.0
-401736352,2025-08-25,2025,False,Connecticut Sun,New York Liberty,5279789,Mamignan Toure,G,False,3.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,9.0
+401736352,2025-08-25,2025,False,Connecticut Sun,New York Liberty,5279789,Migna Toure,G,False,3.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,9.0
 401736352,2025-08-25,2025,False,New York Liberty,Connecticut Sun,2998928,Breanna Stewart,F,True,21.0,19.0,4.0,12.0,0.0,2.0,11.0,13.0,5.0,0.0,2.0,0.0,1.0,1.0,4.0,2.0,-10.0
 401736352,2025-08-25,2025,False,New York Liberty,Connecticut Sun,4683006,Leonie Fiebich,F,True,31.0,7.0,3.0,6.0,1.0,2.0,0.0,0.0,1.0,2.0,1.0,2.0,0.0,0.0,1.0,5.0,0.0
 401736352,2025-08-25,2025,False,New York Liberty,Connecticut Sun,2999101,Jonquel Jones,C,True,33.0,18.0,8.0,10.0,2.0,4.0,0.0,0.0,11.0,6.0,1.0,1.0,0.0,3.0,8.0,3.0,13.0
@@ -10457,7 +10457,7 @@ event_id,date,season,is_playoff,team,opponent,player_id,player_name,position,sta
 401736357,2025-08-28,2025,False,Connecticut Sun,Dallas Wings,4398966,Olivia Nelson-Ododa,C,False,13.0,8.0,2.0,3.0,0.0,0.0,4.0,4.0,3.0,1.0,1.0,0.0,0.0,1.0,2.0,2.0,-5.0
 401736357,2025-08-28,2025,False,Connecticut Sun,Dallas Wings,3058908,Lindsay Allen,G,False,2.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,1.0,0.0,0.0,1.0,0.0,-2.0
 401736357,2025-08-28,2025,False,Connecticut Sun,Dallas Wings,4433514,Saniya Rivers,G,False,25.0,11.0,4.0,9.0,3.0,6.0,0.0,0.0,1.0,1.0,3.0,0.0,1.0,0.0,1.0,2.0,5.0
-401736357,2025-08-28,2025,False,Connecticut Sun,Dallas Wings,5279789,Mamignan Toure,G,False,5.0,5.0,2.0,3.0,1.0,2.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0
+401736357,2025-08-28,2025,False,Connecticut Sun,Dallas Wings,5279789,Migna Toure,G,False,5.0,5.0,2.0,3.0,1.0,2.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0
 401736357,2025-08-28,2025,False,Dallas Wings,Connecticut Sun,4399415,Maddy Siegrist,F,True,34.0,15.0,6.0,9.0,0.0,1.0,3.0,5.0,2.0,3.0,2.0,0.0,0.0,0.0,2.0,3.0,-4.0
 401736357,2025-08-28,2025,False,Dallas Wings,Connecticut Sun,4682797,Luisa Geiselsoder,C,True,14.0,4.0,2.0,6.0,0.0,2.0,0.0,0.0,3.0,1.0,2.0,1.0,0.0,1.0,2.0,2.0,-10.0
 401736357,2025-08-28,2025,False,Dallas Wings,Connecticut Sun,4398899,Grace Berger,G,True,29.0,5.0,2.0,6.0,0.0,1.0,1.0,1.0,7.0,6.0,0.0,1.0,0.0,0.0,7.0,3.0,4.0
@@ -10579,7 +10579,7 @@ event_id,date,season,is_playoff,team,opponent,player_id,player_name,position,sta
 401736363,2025-08-30,2025,False,Connecticut Sun,Minnesota Lynx,4433408,Aaliyah Edwards,F,False,21.0,11.0,3.0,6.0,0.0,0.0,5.0,8.0,5.0,2.0,1.0,0.0,0.0,2.0,3.0,1.0,-10.0
 401736363,2025-08-30,2025,False,Connecticut Sun,Minnesota Lynx,4433792,Rayah Marshall,C,False,2.0,1.0,0.0,1.0,0.0,0.0,1.0,2.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0
 401736363,2025-08-30,2025,False,Connecticut Sun,Minnesota Lynx,4433514,Saniya Rivers,G,False,22.0,6.0,2.0,11.0,1.0,4.0,1.0,1.0,3.0,0.0,3.0,1.0,0.0,2.0,1.0,1.0,-13.0
-401736363,2025-08-30,2025,False,Connecticut Sun,Minnesota Lynx,5279789,Mamignan Toure,G,False,15.0,8.0,3.0,4.0,2.0,2.0,0.0,0.0,1.0,0.0,1.0,0.0,0.0,1.0,0.0,2.0,-10.0
+401736363,2025-08-30,2025,False,Connecticut Sun,Minnesota Lynx,5279789,Migna Toure,G,False,15.0,8.0,3.0,4.0,2.0,2.0,0.0,0.0,1.0,0.0,1.0,0.0,0.0,1.0,0.0,2.0,-10.0
 401736364,2025-08-31,2025,False,Washington Mystics,Golden State Valkyries,924,Alysha Clark,F,True,26.0,0.0,0.0,4.0,0.0,3.0,0.0,0.0,6.0,2.0,0.0,0.0,0.0,0.0,6.0,2.0,-24.0
 401736364,2025-08-31,2025,False,Washington Mystics,Golden State Valkyries,4898384,Kiki Iriafen,F,True,25.0,9.0,4.0,8.0,0.0,1.0,1.0,2.0,3.0,2.0,1.0,0.0,0.0,1.0,2.0,1.0,-27.0
 401736364,2025-08-31,2025,False,Washington Mystics,Golden State Valkyries,4398911,Shakira Austin,C,True,15.0,6.0,2.0,7.0,1.0,1.0,1.0,2.0,2.0,2.0,0.0,1.0,1.0,0.0,2.0,0.0,-17.0
@@ -10656,7 +10656,7 @@ event_id,date,season,is_playoff,team,opponent,player_id,player_name,position,sta
 401736369,2025-09-01,2025,False,Connecticut Sun,Atlanta Dream,4433408,Aaliyah Edwards,F,False,21.0,4.0,2.0,2.0,0.0,0.0,0.0,0.0,4.0,1.0,2.0,0.0,2.0,1.0,3.0,2.0,-16.0
 401736369,2025-09-01,2025,False,Connecticut Sun,Atlanta Dream,4433792,Rayah Marshall,C,False,3.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,1.0,0.0,-3.0
 401736369,2025-09-01,2025,False,Connecticut Sun,Atlanta Dream,4433514,Saniya Rivers,G,False,28.0,10.0,4.0,7.0,0.0,2.0,2.0,2.0,2.0,2.0,0.0,2.0,0.0,0.0,2.0,2.0,-9.0
-401736369,2025-09-01,2025,False,Connecticut Sun,Atlanta Dream,5279789,Mamignan Toure,G,False,8.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,-10.0
+401736369,2025-09-01,2025,False,Connecticut Sun,Atlanta Dream,5279789,Migna Toure,G,False,8.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,-10.0
 401736367,2025-09-01,2025,False,Washington Mystics,Los Angeles Sparks,924,Alysha Clark,F,True,20.0,0.0,0.0,1.0,0.0,1.0,0.0,0.0,4.0,1.0,1.0,0.0,0.0,0.0,4.0,0.0,3.0
 401736367,2025-09-01,2025,False,Washington Mystics,Los Angeles Sparks,4898384,Kiki Iriafen,F,True,27.0,22.0,8.0,20.0,1.0,1.0,5.0,6.0,13.0,1.0,1.0,0.0,0.0,6.0,7.0,2.0,2.0
 401736367,2025-09-01,2025,False,Washington Mystics,Los Angeles Sparks,4398911,Shakira Austin,C,True,22.0,11.0,3.0,9.0,1.0,1.0,4.0,6.0,7.0,0.0,0.0,0.0,1.0,0.0,7.0,2.0,-6.0
@@ -10792,7 +10792,7 @@ event_id,date,season,is_playoff,team,opponent,player_id,player_name,position,sta
 401736375,2025-09-04,2025,False,Connecticut Sun,Chicago Sky,4433408,Aaliyah Edwards,F,False,28.0,4.0,2.0,6.0,0.0,0.0,0.0,0.0,8.0,1.0,3.0,1.0,1.0,4.0,4.0,3.0,-14.0
 401736375,2025-09-04,2025,False,Connecticut Sun,Chicago Sky,4433792,Rayah Marshall,C,False,12.0,4.0,2.0,5.0,0.0,0.0,0.0,1.0,4.0,1.0,1.0,1.0,0.0,1.0,3.0,2.0,1.0
 401736375,2025-09-04,2025,False,Connecticut Sun,Chicago Sky,4433514,Saniya Rivers,G,False,26.0,16.0,5.0,13.0,4.0,7.0,2.0,2.0,2.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,-14.0
-401736375,2025-09-04,2025,False,Connecticut Sun,Chicago Sky,5279789,Mamignan Toure,G,False,17.0,0.0,0.0,3.0,0.0,1.0,0.0,0.0,0.0,1.0,1.0,0.0,0.0,0.0,0.0,2.0,-8.0
+401736375,2025-09-04,2025,False,Connecticut Sun,Chicago Sky,5279789,Migna Toure,G,False,17.0,0.0,0.0,3.0,0.0,1.0,0.0,0.0,0.0,1.0,1.0,0.0,0.0,0.0,0.0,2.0,-8.0
 401736375,2025-09-04,2025,False,Chicago Sky,Connecticut Sun,4282173,Michaela Onyenwere,F,True,18.0,5.0,1.0,3.0,0.0,1.0,3.0,4.0,0.0,4.0,0.0,2.0,0.0,0.0,0.0,1.0,11.0
 401736375,2025-09-04,2025,False,Chicago Sky,Connecticut Sun,4433402,Angel Reese,F,True,31.0,18.0,4.0,12.0,0.0,2.0,10.0,12.0,13.0,4.0,4.0,4.0,0.0,7.0,6.0,5.0,18.0
 401736375,2025-09-04,2025,False,Chicago Sky,Connecticut Sun,4433405,Kamilla Cardoso,C,True,23.0,16.0,8.0,11.0,0.0,0.0,0.0,1.0,5.0,2.0,0.0,0.0,3.0,3.0,2.0,3.0,17.0
@@ -10915,7 +10915,7 @@ event_id,date,season,is_playoff,team,opponent,player_id,player_name,position,sta
 401736382,2025-09-06,2025,False,Connecticut Sun,Phoenix Mercury,2529125,Haley Peters,F,False,5.0,3.0,1.0,1.0,1.0,1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,-2.0
 401736382,2025-09-06,2025,False,Connecticut Sun,Phoenix Mercury,4433408,Aaliyah Edwards,F,False,19.0,4.0,2.0,5.0,0.0,0.0,0.0,1.0,3.0,0.0,0.0,1.0,0.0,0.0,3.0,1.0,-1.0
 401736382,2025-09-06,2025,False,Connecticut Sun,Phoenix Mercury,4433514,Saniya Rivers,G,False,30.0,6.0,2.0,8.0,2.0,4.0,0.0,0.0,6.0,5.0,3.0,1.0,2.0,1.0,5.0,0.0,1.0
-401736382,2025-09-06,2025,False,Connecticut Sun,Phoenix Mercury,5279789,Mamignan Toure,G,False,7.0,3.0,1.0,3.0,1.0,1.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,1.0
+401736382,2025-09-06,2025,False,Connecticut Sun,Phoenix Mercury,5279789,Migna Toure,G,False,7.0,3.0,1.0,3.0,1.0,1.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,1.0
 401736381,2025-09-06,2025,False,New York Liberty,Seattle Storm,2998928,Breanna Stewart,F,True,36.0,24.0,5.0,11.0,1.0,1.0,13.0,14.0,7.0,4.0,2.0,0.0,5.0,1.0,6.0,2.0,14.0
 401736381,2025-09-06,2025,False,New York Liberty,Seattle Storm,4683006,Leonie Fiebich,F,True,31.0,21.0,6.0,10.0,4.0,6.0,5.0,5.0,5.0,1.0,2.0,2.0,0.0,1.0,4.0,2.0,9.0
 401736381,2025-09-06,2025,False,New York Liberty,Seattle Storm,2999101,Jonquel Jones,C,True,18.0,2.0,1.0,4.0,0.0,1.0,0.0,0.0,2.0,3.0,1.0,0.0,1.0,1.0,1.0,5.0,4.0
@@ -11016,7 +11016,7 @@ event_id,date,season,is_playoff,team,opponent,player_id,player_name,position,sta
 401736387,2025-09-08,2025,False,Connecticut Sun,Atlanta Dream,2529125,Haley Peters,F,False,10.0,3.0,1.0,2.0,1.0,1.0,0.0,0.0,1.0,0.0,1.0,0.0,0.0,1.0,0.0,1.0,-10.0
 401736387,2025-09-08,2025,False,Connecticut Sun,Atlanta Dream,4433408,Aaliyah Edwards,F,False,15.0,3.0,1.0,4.0,0.0,1.0,1.0,2.0,5.0,0.0,1.0,2.0,0.0,0.0,5.0,0.0,-10.0
 401736387,2025-09-08,2025,False,Connecticut Sun,Atlanta Dream,4433792,Rayah Marshall,C,False,5.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0,1.0,1.0,-2.0
-401736387,2025-09-08,2025,False,Connecticut Sun,Atlanta Dream,5279789,Mamignan Toure,G,False,20.0,3.0,1.0,5.0,1.0,3.0,0.0,0.0,2.0,3.0,1.0,0.0,0.0,1.0,1.0,2.0,-6.0
+401736387,2025-09-08,2025,False,Connecticut Sun,Atlanta Dream,5279789,Migna Toure,G,False,20.0,3.0,1.0,5.0,1.0,3.0,0.0,0.0,2.0,3.0,1.0,0.0,0.0,1.0,1.0,2.0,-6.0
 401736387,2025-09-08,2025,False,Atlanta Dream,Connecticut Sun,3058895,Brionna Jones,F,True,20.0,8.0,4.0,12.0,0.0,0.0,0.0,0.0,5.0,1.0,0.0,1.0,0.0,2.0,3.0,1.0,11.0
 401736387,2025-09-08,2025,False,Atlanta Dream,Connecticut Sun,4398915,Naz Hillmon,F,True,32.0,14.0,6.0,9.0,2.0,4.0,0.0,0.0,5.0,4.0,2.0,4.0,0.0,1.0,4.0,1.0,32.0
 401736387,2025-09-08,2025,False,Atlanta Dream,Connecticut Sun,3058901,Allisha Gray,G,True,20.0,15.0,5.0,7.0,2.0,4.0,3.0,4.0,6.0,0.0,0.0,0.0,0.0,2.0,4.0,0.0,11.0
@@ -11144,7 +11144,7 @@ event_id,date,season,is_playoff,team,opponent,player_id,player_name,position,sta
 401736393,2025-09-10,2025,False,Connecticut Sun,Atlanta Dream,2529125,Haley Peters,F,False,4.0,0.0,0.0,2.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,1.0
 401736393,2025-09-10,2025,False,Connecticut Sun,Atlanta Dream,4433408,Aaliyah Edwards,F,False,23.0,4.0,1.0,7.0,0.0,0.0,2.0,2.0,8.0,1.0,0.0,5.0,0.0,4.0,4.0,3.0,-16.0
 401736393,2025-09-10,2025,False,Connecticut Sun,Atlanta Dream,4433792,Rayah Marshall,C,False,4.0,2.0,0.0,1.0,0.0,0.0,2.0,2.0,1.0,0.0,1.0,0.0,1.0,1.0,0.0,2.0,-8.0
-401736393,2025-09-10,2025,False,Connecticut Sun,Atlanta Dream,5279789,Mamignan Toure,G,False,13.0,4.0,2.0,4.0,0.0,2.0,0.0,0.0,2.0,0.0,1.0,2.0,0.0,1.0,1.0,1.0,-6.0
+401736393,2025-09-10,2025,False,Connecticut Sun,Atlanta Dream,5279789,Migna Toure,G,False,13.0,4.0,2.0,4.0,0.0,2.0,0.0,0.0,2.0,0.0,1.0,2.0,0.0,1.0,1.0,1.0,-6.0
 401736397,2025-09-12,2025,False,Las Vegas Aces,Los Angeles Sparks,4398776,NaLyssa Smith,F,True,24.0,10.0,5.0,8.0,0.0,1.0,0.0,0.0,2.0,2.0,0.0,1.0,0.0,1.0,1.0,1.0,39.0
 401736397,2025-09-12,2025,False,Las Vegas Aces,Los Angeles Sparks,3149391,A'ja Wilson,C,True,33.0,23.0,9.0,17.0,3.0,3.0,2.0,2.0,19.0,4.0,1.0,2.0,4.0,5.0,14.0,1.0,33.0
 401736397,2025-09-12,2025,False,Las Vegas Aces,Los Angeles Sparks,2529122,Chelsea Gray,G,True,33.0,15.0,6.0,10.0,3.0,5.0,0.0,0.0,6.0,10.0,2.0,7.0,0.0,2.0,4.0,2.0,30.0
